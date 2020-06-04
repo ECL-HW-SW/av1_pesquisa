@@ -1,0 +1,45 @@
+Pass 1/1 frame    1/0          0B       0 us 0.00 fpm [ETA  unknown] 
+ Frame number: 0, Frame type: KEY_FRAME, Show Frame: 1
+ encode_frame_to_data_rate_time:  237869895 us (total: 237869895 us)
+ encode_with_recode_loop_time:  232270299 us (total: 232270299 us)
+ loop_filter_time:  205984 us (total: 205984 us)
+ cdef_time:  5371573 us (total: 5371573 us)
+ loop_restoration_time:  0 us (total: 0 us)
+ av1_pack_bitstream_final_time:  21980 us (total: 21980 us)
+ av1_encode_frame_time:  232269784 us (total: 232269784 us)
+ av1_compute_global_motion_time:  1 us (total: 1 us)
+ av1_setup_motion_field_time:  0 us (total: 0 us)
+ encode_sb_time:  232267820 us (total: 232267820 us)
+ rd_pick_partition_time:  232251759 us (total: 232251759 us)
+ rd_pick_sb_modes_time:  230745728 us (total: 230745728 us)
+ av1_rd_pick_intra_mode_sb_time:  230694217 us (total: 230694217 us)
+ av1_rd_pick_inter_mode_sb_time:  0 us (total: 0 us)
+ handle_intra_mode_time:  0 us (total: 0 us)
+ do_tx_search_time:  0 us (total: 0 us)
+ handle_newmv_time:  0 us (total: 0 us)
+ compound_type_rd_time:  0 us (total: 0 us)
+ interpolation_filter_search_time:  0 us (total: 0 us)
+ motion_mode_rd_time:  0 us (total: 0 us)
+  23651F[KPass 1/1 frame    2/1      23651B  238089 ms 0.50 fpm [ETA  0:04:10] 
+ Frame number: 1, Frame type: INTER_FRAME, Show Frame: 1
+ encode_frame_to_data_rate_time:  55794031 us (total: 293663926 us)
+ encode_with_recode_loop_time:  54776605 us (total: 287046904 us)
+ loop_filter_time:  62917 us (total: 268901 us)
+ cdef_time:  953069 us (total: 6324642 us)
+ loop_restoration_time:  0 us (total: 0 us)
+ av1_pack_bitstream_final_time:  1379 us (total: 23359 us)
+ av1_encode_frame_time:  54776293 us (total: 287046077 us)
+ av1_compute_global_motion_time:  3102060 us (total: 3102061 us)
+ av1_setup_motion_field_time:  9 us (total: 9 us)
+ encode_sb_time:  51672198 us (total: 283940018 us)
+ rd_pick_partition_time:  51655906 us (total: 283907665 us)
+ rd_pick_sb_modes_time:  51049545 us (total: 281795273 us)
+ av1_rd_pick_intra_mode_sb_time:  0 us (total: 230694217 us)
+ av1_rd_pick_inter_mode_sb_time:  51027606 us (total: 51027606 us)
+ handle_intra_mode_time:  19219300 us (total: 19219300 us)
+ do_tx_search_time:  820 us (total: 820 us)
+ handle_newmv_time:  4266713 us (total: 4266713 us)
+ compound_type_rd_time:  2742 us (total: 2742 us)
+ interpolation_filter_search_time:  2258473 us (total: 2258473 us)
+ motion_mode_rd_time:  24118377 us (total: 24118377 us)
+    659F[K[KPass 1/1 frame    2/2      24310B   97240b/f 2333760b/s  294514 ms (0.01 fps)[K
