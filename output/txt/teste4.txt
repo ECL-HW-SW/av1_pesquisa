@@ -1,0 +1,4 @@
+Warning: auto-alt-ref > 1 is deprecated... setting auto-alt-ref=1
+
+Pass 1/2 frame    1/0          0B       0 us 0.00 fpm [ETA  unknown] [KPass 1/2 frame    2/0          0B    4937 us 405.10 fps [ETA  unknown] [K[KPass 1/2 frame    2/3        624B    2496b/f  149610b/s   10135 us (197.34 fps)[K
+Pass 2/2 frame    1/0          0B   10471 us 95.50 fps [ETA  unknown] [KPass 2/2 frame    2/0          0B   16593 us 120.53 fps [ETA  unknown] [K  61869F[K     24F[K[KPass 2/2 frame    2/2      61893B  247572b/f 14839480b/s 6273532 us (0.32 fps)[K
