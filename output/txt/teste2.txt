@@ -1,0 +1,4 @@
+Error: Unrecognized option -end-usage=q
+
+Usage: aom/build/aomenc <options> -o dst_filename src_filename 
+Use --help to see the full list of options.

@@ -1,0 +1,2 @@
+Pass 1/2 frame    1/0          0B       0 us 0.00 fpm [ETA  unknown] [KPass 1/2 frame    2/0          0B    3581 us 558.50 fps [ETA  unknown] [K[KPass 1/2 frame    2/3        624B    2496b/f  149610b/s    8947 us (223.54 fps)[K
+Pass 2/2 frame    1/0          0B    9292 us 107.62 fps [ETA  unknown] [KPass 2/2 frame    2/0          0B   13473 us 148.45 fps [ETA  unknown] [K   7122F[K     25F[K[KPass 2/2 frame    2/2       7147B   28588b/f 1713566b/s 9257678 us (0.22 fps)[K
