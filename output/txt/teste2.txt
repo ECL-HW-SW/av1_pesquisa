@@ -1,4 +1,4 @@
-Error: Unrecognized option -end-usage=q
+Warning: auto-alt-ref > 1 is deprecated... setting auto-alt-ref=1
 
-Usage: aom/build/aomenc <options> -o dst_filename src_filename 
-Use --help to see the full list of options.
+Pass 1/2 frame    1/0          0B       0 us 0.00 fpm [ETA  unknown] [KPass 1/2 frame    2/0          0B    3528 us 566.89 fps [ETA  unknown] [K[KPass 1/2 frame    2/3        624B    2496b/f  149610b/s    9124 us (219.20 fps)[K
+Pass 2/2 frame    1/0          0B    9474 us 105.55 fps [ETA  unknown] [KPass 2/2 frame    2/0          0B   15090 us 132.54 fps [ETA  unknown] [K  61869F[K     24F[K[KPass 2/2 frame    2/2      61893B  247572b/f 14839480b/s 6412313 us (0.31 fps)[K
