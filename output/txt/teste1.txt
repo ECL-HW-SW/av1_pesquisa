@@ -1,2 +1,45 @@
-Pass 1/2 frame    1/0          0B       0 us 0.00 fpm [ETA  unknown] [KPass 1/2 frame    2/0          0B    3581 us 558.50 fps [ETA  unknown] [K[KPass 1/2 frame    2/3        624B    2496b/f  149610b/s    8947 us (223.54 fps)[K
-Pass 2/2 frame    1/0          0B    9292 us 107.62 fps [ETA  unknown] [KPass 2/2 frame    2/0          0B   13473 us 148.45 fps [ETA  unknown] [K   7122F[K     25F[K[KPass 2/2 frame    2/2       7147B   28588b/f 1713566b/s 9257678 us (0.22 fps)[K
+Codec: AOMedia Project AV1 Encoder 2.0.0-762-g7e235b0d9
+Source file: ../Videos/av1_sets/BQFree_426x240_60_120f_8bit_420.y4m File Type: Y4M Format: I420
+Destination file: output/bin/teste1.bin
+Coding path: LBD
+Encoder parameters:
+    g_usage                      = 0
+    g_threads                    = 1
+    g_profile                    = 0
+    g_w                          = 416
+    g_h                          = 240
+    g_bit_depth                  = 8
+    g_input_bit_depth            = 8
+    g_timebase.num               = 1001
+    g_timebase.den               = 60000
+    g_error_resilient            = 0
+    g_pass                       = 0
+    g_lag_in_frames              = 19
+    large_scale_tile             = 0
+    rc_dropframe_thresh          = 0
+    rc_resize_mode               = 0
+    rc_resize_denominator        = 8
+    rc_resize_kf_denominator     = 8
+    rc_superres_mode             = 0
+    rc_superres_denominator      = 8
+    rc_superres_kf_denominator   = 8
+    rc_superres_qthresh          = 63
+    rc_superres_kf_qthresh       = 32
+    rc_end_usage                 = 0
+    rc_target_bitrate            = 256
+    rc_min_quantizer             = 0
+    rc_max_quantizer             = 63
+    rc_undershoot_pct            = 25
+    rc_overshoot_pct             = 25
+    rc_buf_sz                    = 6000
+    rc_buf_initial_sz            = 4000
+    rc_buf_optimal_sz            = 5000
+    rc_2pass_vbr_bias_pct        = 50
+    rc_2pass_vbr_minsection_pct  = 0
+    rc_2pass_vbr_maxsection_pct  = 2000
+    fwd_kf_enabled               = 0
+    kf_mode                      = 1
+    kf_min_dist                  = 0
+    kf_max_dist                  = 9999
+Pass 1/2 frame    1/0          0B       0 us 0.00 fpm [ETA  unknown] [KPass 1/2 frame    2/0          0B    4046 us 494.32 fps [ETA  unknown] [K[KPass 1/2 frame    2/3        624B    2496b/f  149610b/s    8299 us (240.99 fps)[K
+Pass 2/2 frame    1/0          0B    8665 us 115.41 fps [ETA  unknown] [KPass 2/2 frame    2/0          0B   13608 us 146.97 fps [ETA  unknown] [K   7122F[K     25F[K[KPass 2/2 frame    2/2       7147B   28588b/f 1713566b/s 7677401 us (0.26 fps)[K
