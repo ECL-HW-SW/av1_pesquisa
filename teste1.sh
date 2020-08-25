@@ -1,0 +1,1 @@
+aom/build/aomenc -codec=av1 -ivf -frame-parallel=0 -tile-columns=0 -cpu-used=0 -threads=1 -w 416 -h 240 --limit=2 -o output/bin/teste1.bin ../../videos/av1_sets/bqfree_240p_120f.y4m 2> output/txt/teste1.txt
