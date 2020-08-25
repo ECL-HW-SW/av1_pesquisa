@@ -41,5 +41,6 @@ Encoder parameters:
     kf_mode                      = 1
     kf_min_dist                  = 0
     kf_max_dist                  = 9999
-Pass 1/2 frame    1/0          0B       0 us 0.00 fpm [ETA  unknown] [KPass 1/2 frame    2/1        208B    3064 us 652.74 fps [ETA  0:00:00] [K[KPass 1/2 frame    2/3        624B    2496b/f  149610b/s    5756 us (347.46 fps)[K
-Pass 2/2 frame    1/0          0B    6090 us 164.20 fps [ETA  unknown]   61869F[KPass 2/2 frame    2/1      61869B 5939619 us 20.20 fpm [ETA  0:00:05]      24F[K[KPass 2/2 frame    2/2      61893B  247572b/f 14839480b/s 6008377 us (0.33 fps)[K
+Pass 1/2 frame    1/0          0B       0 us 0.00 fpm [ETA  unknown] [KPass 1/2 frame    2/1        208B    3107 us 643.71 fps [ETA  0:00:00] [K[KPass 1/2 frame    2/3        624B    2496b/f  149610b/s    5851 us (341.82 fps)[K
+Pass 2/2 frame    1/0          0B    6182 us 161.76 fps [ETA  unknown] 60.722 61.510 59.495 59.462   61869F[KPass 2/2 frame    2/1      61869B 5938531 us 20.21 fpm [ETA  0:00:05] 60.722 61.510 59.495 59.462      24F[K[KPass 2/2 frame    2/2      61893B  247572b/f 14839480b/s 6007570 us (0.33 fps)[K
+Stream 0 PSNR (Overall/Avg/Y/U/V) 60.722 60.722 61.510 59.495 59.462 14839480 bps    6007 ms
