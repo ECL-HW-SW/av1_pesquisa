@@ -590,11 +590,11 @@ static const arg_def_t quant_b_adapt =
 static const arg_def_t coeff_cost_upd_freq =
     ARG_DEF(NULL, "coeff-cost-upd-freq", 1,
             "Update freq for coeff costs"
-            "0: SB, 1: SB Row per Tile, 2: Tile");
+            "0: SB, 1: SB Row per Tile, 2: Tile, 3: Off");
 static const arg_def_t mode_cost_upd_freq =
     ARG_DEF(NULL, "mode-cost-upd-freq", 1,
             "Update freq for mode costs"
-            "0: SB, 1: SB Row per Tile, 2: Tile");
+            "0: SB, 1: SB Row per Tile, 2: Tile, 3: Off");
 static const arg_def_t mv_cost_upd_freq =
     ARG_DEF(NULL, "mv-cost-upd-freq", 1,
             "Update freq for mv costs"
@@ -2157,7 +2157,7 @@ static void get_cx_data(struct stream_state *stream,
 
 #if CONFIG_AV1_HIGHBITDEPTH
           if (stream->config.cfg.g_input_bit_depth <
-              stream->config.cfg.g_bit_depth) {
+              (unsigned int)stream->config.cfg.g_bit_depth) {
             stream->psnr_sse_total[1] += pkt->data.psnr.sse_hbd[0];
             stream->psnr_samples_total[1] += pkt->data.psnr.samples_hbd[0];
             for (i = 0; i < 4; i++) {
@@ -2798,7 +2798,7 @@ int main(int argc, const char **argv_) {
           if (global.show_psnr == 2) {
 #if CONFIG_AV1_HIGHBITDEPTH
             if (stream->config.cfg.g_input_bit_depth <
-                stream->config.cfg.g_bit_depth)
+                (unsigned int)stream->config.cfg.g_bit_depth)
               show_psnr_hbd(stream, (1 << stream->config.cfg.g_bit_depth) - 1,
                             bps);
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2020, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -30,41 +30,30 @@ DECLARE_ALIGNED(32, static const uint32_t, sse_bytemask_2x4[4][2][4]) = {
     { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF } }
 };
 
-static void get_squared_error(const uint8_t *frame1, const unsigned int stride,
-                              const uint8_t *frame2, const unsigned int stride2,
-                              const int block_width, const int block_height,
-                              uint16_t *frame_sse,
+static void get_squared_error(const uint16_t *frame1, const unsigned int stride,
+                              const uint16_t *frame2,
+                              const unsigned int stride2, const int block_width,
+                              const int block_height, uint32_t *frame_sse,
                               const unsigned int dst_stride) {
-  const uint8_t *src1 = frame1;
-  const uint8_t *src2 = frame2;
-  uint16_t *dst = frame_sse;
+  const uint16_t *src1 = frame1;
+  const uint16_t *src2 = frame2;
+  uint32_t *dst = frame_sse;
 
   for (int i = 0; i < block_height; i++) {
-    for (int j = 0; j < block_width; j += 16) {
-      // Set zero to uninitialized memory to avoid uninitialized loads later
-      *(uint32_t *)(dst) = _mm_cvtsi128_si32(_mm_setzero_si128());
-
+    for (int j = 0; j < block_width; j += 8) {
       __m128i vsrc1 = _mm_loadu_si128((__m128i *)(src1 + j));
       __m128i vsrc2 = _mm_loadu_si128((__m128i *)(src2 + j));
 
-      __m128i vmax = _mm_max_epu8(vsrc1, vsrc2);
-      __m128i vmin = _mm_min_epu8(vsrc1, vsrc2);
-      __m128i vdiff = _mm_subs_epu8(vmax, vmin);
+      __m128i vdiff = _mm_sub_epi16(vsrc1, vsrc2);
+      __m128i vmullo = _mm_mullo_epi16(vdiff, vdiff);
+      __m128i vmullh = _mm_mulhi_epi16(vdiff, vdiff);
 
-      __m128i vzero = _mm_setzero_si128();
-      __m128i vdiff1 = _mm_unpacklo_epi8(vdiff, vzero);
-      __m128i vdiff2 = _mm_unpackhi_epi8(vdiff, vzero);
-
-      __m128i vres1 = _mm_mullo_epi16(vdiff1, vdiff1);
-      __m128i vres2 = _mm_mullo_epi16(vdiff2, vdiff2);
+      __m128i vres1 = _mm_unpacklo_epi16(vmullo, vmullh);
+      __m128i vres2 = _mm_unpackhi_epi16(vmullo, vmullh);
 
       _mm_storeu_si128((__m128i *)(dst + j + 2), vres1);
-      _mm_storeu_si128((__m128i *)(dst + j + 10), vres2);
+      _mm_storeu_si128((__m128i *)(dst + j + 6), vres2);
     }
-
-    // Set zero to uninitialized memory to avoid uninitialized loads later
-    *(uint32_t *)(dst + block_width + 2) =
-        _mm_cvtsi128_si32(_mm_setzero_si128());
 
     src1 += stride;
     src2 += stride2;
@@ -72,12 +61,10 @@ static void get_squared_error(const uint8_t *frame1, const unsigned int stride,
   }
 }
 
-static void xx_load_and_pad(uint16_t *src, __m128i *dstvec, int col,
+static void xx_load_and_pad(uint32_t *src, __m128i *dstvec, int col,
                             int block_width) {
-  __m128i vtmp = _mm_loadu_si128((__m128i *)src);
-  __m128i vzero = _mm_setzero_si128();
-  __m128i vtmp1 = _mm_unpacklo_epi16(vtmp, vzero);
-  __m128i vtmp2 = _mm_unpackhi_epi16(vtmp, vzero);
+  __m128i vtmp1 = _mm_loadu_si128((__m128i *)src);
+  __m128i vtmp2 = _mm_loadu_si128((__m128i *)(src + 4));
   // For the first column, replicate the first element twice to the left
   dstvec[0] = (col) ? vtmp1 : _mm_shuffle_epi32(vtmp1, 0xEA);
   // For the last column, replicate the last element twice to the right
@@ -102,11 +89,11 @@ static int32_t xx_mask_and_hadd(__m128i vsum1, __m128i vsum2, int i) {
   return _mm_cvtsi128_si32(veca);
 }
 
-static void apply_temporal_filter(
-    const uint8_t *frame1, const unsigned int stride, const uint8_t *frame2,
+static void highbd_apply_temporal_filter(
+    const uint16_t *frame1, const unsigned int stride, const uint16_t *frame2,
     const unsigned int stride2, const int block_width, const int block_height,
     const int *subblock_mses, unsigned int *accumulator, uint16_t *count,
-    uint16_t *frame_sse, uint32_t *luma_sse_sum,
+    uint32_t *frame_sse, uint32_t *luma_sse_sum, int bd,
     const double inv_num_ref_pixels, const double decay_factor,
     const double inv_factor, const double weight_factor, double *d_factor) {
   assert(((block_width == 32) && (block_height == 32)) ||
@@ -122,7 +109,7 @@ static void apply_temporal_filter(
   // Traverse 4 columns at a time
   // First and last columns will require padding
   for (int col = 0; col < block_width; col += 4) {
-    uint16_t *src = frame_sse + col;
+    uint32_t *src = frame_sse + col;
 
     // Load and pad(for first and last col) 3 rows from the top
     for (int i = 2; i < 5; i++) {
@@ -136,36 +123,59 @@ static void apply_temporal_filter(
     vsrc[1][0] = vsrc[2][0];
     vsrc[1][1] = vsrc[2][1];
 
-    for (int row = 0; row < block_height; row++) {
-      __m128i vsum1 = _mm_setzero_si128();
-      __m128i vsum2 = _mm_setzero_si128();
+    for (int row = 0; row < block_height - 3; row++) {
+      __m128i vsum11 = _mm_add_epi32(vsrc[0][0], vsrc[1][0]);
+      __m128i vsum12 = _mm_add_epi32(vsrc[2][0], vsrc[3][0]);
+      __m128i vsum13 = _mm_add_epi32(vsum11, vsum12);
+      __m128i vsum1 = _mm_add_epi32(vsum13, vsrc[4][0]);
 
-      // Add 5 consecutive rows
-      for (int i = 0; i < 5; i++) {
-        vsum1 = _mm_add_epi32(vsrc[i][0], vsum1);
-        vsum2 = _mm_add_epi32(vsrc[i][1], vsum2);
-      }
+      __m128i vsum21 = _mm_add_epi32(vsrc[0][1], vsrc[1][1]);
+      __m128i vsum22 = _mm_add_epi32(vsrc[2][1], vsrc[3][1]);
+      __m128i vsum23 = _mm_add_epi32(vsum21, vsum22);
+      __m128i vsum2 = _mm_add_epi32(vsum23, vsrc[4][1]);
 
-      // Push all elements by one element to the top
-      for (int i = 0; i < 4; i++) {
-        vsrc[i][0] = vsrc[i + 1][0];
-        vsrc[i][1] = vsrc[i + 1][1];
-      }
+      vsrc[0][0] = vsrc[1][0];
+      vsrc[0][1] = vsrc[1][1];
+      vsrc[1][0] = vsrc[2][0];
+      vsrc[1][1] = vsrc[2][1];
+      vsrc[2][0] = vsrc[3][0];
+      vsrc[2][1] = vsrc[3][1];
+      vsrc[3][0] = vsrc[4][0];
+      vsrc[3][1] = vsrc[4][1];
 
-      if (row <= block_height - 4) {
-        // Load next row
-        xx_load_and_pad(src, vsrc[4], col, block_width);
-        src += SSE_STRIDE;
-      } else {
-        // Padding for bottom 2 rows
-        vsrc[4][0] = vsrc[3][0];
-        vsrc[4][1] = vsrc[3][1];
-      }
+      // Load next row
+      xx_load_and_pad(src, vsrc[4], col, block_width);
+      src += SSE_STRIDE;
 
-      // Accumulate the sum horizontally
-      for (int i = 0; i < 4; i++) {
-        acc_5x5_sse[row][col + i] = xx_mask_and_hadd(vsum1, vsum2, i);
-      }
+      acc_5x5_sse[row][col] = xx_mask_and_hadd(vsum1, vsum2, 0);
+      acc_5x5_sse[row][col + 1] = xx_mask_and_hadd(vsum1, vsum2, 1);
+      acc_5x5_sse[row][col + 2] = xx_mask_and_hadd(vsum1, vsum2, 2);
+      acc_5x5_sse[row][col + 3] = xx_mask_and_hadd(vsum1, vsum2, 3);
+    }
+    for (int row = block_height - 3; row < block_height; row++) {
+      __m128i vsum11 = _mm_add_epi32(vsrc[0][0], vsrc[1][0]);
+      __m128i vsum12 = _mm_add_epi32(vsrc[2][0], vsrc[3][0]);
+      __m128i vsum13 = _mm_add_epi32(vsum11, vsum12);
+      __m128i vsum1 = _mm_add_epi32(vsum13, vsrc[4][0]);
+
+      __m128i vsum21 = _mm_add_epi32(vsrc[0][1], vsrc[1][1]);
+      __m128i vsum22 = _mm_add_epi32(vsrc[2][1], vsrc[3][1]);
+      __m128i vsum23 = _mm_add_epi32(vsum21, vsum22);
+      __m128i vsum2 = _mm_add_epi32(vsum23, vsrc[4][1]);
+
+      vsrc[0][0] = vsrc[1][0];
+      vsrc[0][1] = vsrc[1][1];
+      vsrc[1][0] = vsrc[2][0];
+      vsrc[1][1] = vsrc[2][1];
+      vsrc[2][0] = vsrc[3][0];
+      vsrc[2][1] = vsrc[3][1];
+      vsrc[3][0] = vsrc[4][0];
+      vsrc[3][1] = vsrc[4][1];
+
+      acc_5x5_sse[row][col] = xx_mask_and_hadd(vsum1, vsum2, 0);
+      acc_5x5_sse[row][col + 1] = xx_mask_and_hadd(vsum1, vsum2, 1);
+      acc_5x5_sse[row][col + 2] = xx_mask_and_hadd(vsum1, vsum2, 2);
+      acc_5x5_sse[row][col + 3] = xx_mask_and_hadd(vsum1, vsum2, 3);
     }
   }
 
@@ -173,6 +183,9 @@ static void apply_temporal_filter(
     for (int j = 0; j < block_width; j++, k++) {
       const int pixel_value = frame2[i * stride2 + j];
       uint32_t diff_sse = acc_5x5_sse[i][j] + luma_sse_sum[i * BW + j];
+
+      // Scale down the difference for high bit depth input.
+      diff_sse >>= ((bd - 8) * 2);
 
       const double window_error = diff_sse * inv_num_ref_pixels;
       const int subblock_idx =
@@ -192,7 +205,7 @@ static void apply_temporal_filter(
   }
 }
 
-void av1_apply_temporal_filter_sse2(
+void av1_highbd_apply_temporal_filter_sse2(
     const YV12_BUFFER_CONFIG *frame_to_filter, const MACROBLOCKD *mbd,
     const BLOCK_SIZE block_size, const int mb_row, const int mb_col,
     const int num_planes, const double *noise_levels, const MV *subblock_mvs,
@@ -201,7 +214,6 @@ void av1_apply_temporal_filter_sse2(
   const int is_high_bitdepth = frame_to_filter->flags & YV12_FLAG_HIGHBITDEPTH;
   assert(block_size == BLOCK_32X32 && "Only support 32x32 block with avx2!");
   assert(TF_WINDOW_LENGTH == 5 && "Only support window length 5 with avx2!");
-  assert(!is_high_bitdepth && "Only support low bit-depth with sse2!");
   assert(num_planes >= 1 && num_planes <= MAX_MB_PLANE);
   (void)is_high_bitdepth;
 
@@ -224,8 +236,9 @@ void av1_apply_temporal_filter_sse2(
   double s_decay = pow((double)filter_strength / TF_STRENGTH_THRESHOLD, 2);
   s_decay = CLIP(s_decay, 1e-5, 1);
   double d_factor[4] = { 0 };
-  uint16_t frame_sse[SSE_STRIDE * BH] = { 0 };
+  uint32_t frame_sse[SSE_STRIDE * BH] = { 0 };
   uint32_t luma_sse_sum[BW * BH] = { 0 };
+  uint16_t *pred1 = CONVERT_TO_SHORTPTR(pred);
 
   for (int subblock_idx = 0; subblock_idx < 4; subblock_idx++) {
     // Larger motion vector -> smaller filtering weight.
@@ -243,11 +256,12 @@ void av1_apply_temporal_filter_sse2(
     const uint32_t frame_stride = frame_to_filter->strides[plane == 0 ? 0 : 1];
     const int frame_offset = mb_row * plane_h * frame_stride + mb_col * plane_w;
 
-    const uint8_t *ref = frame_to_filter->buffers[plane] + frame_offset;
+    const uint16_t *ref =
+        CONVERT_TO_SHORTPTR(frame_to_filter->buffers[plane]) + frame_offset;
     const int ss_x_shift =
-        mbd->plane[plane].subsampling_x - mbd->plane[AOM_PLANE_Y].subsampling_x;
+        mbd->plane[plane].subsampling_x - mbd->plane[0].subsampling_x;
     const int ss_y_shift =
-        mbd->plane[plane].subsampling_y - mbd->plane[AOM_PLANE_Y].subsampling_y;
+        mbd->plane[plane].subsampling_y - mbd->plane[0].subsampling_y;
     const int num_ref_pixels = TF_WINDOW_LENGTH * TF_WINDOW_LENGTH +
                                ((plane) ? (1 << (ss_x_shift + ss_y_shift)) : 0);
     const double inv_num_ref_pixels = 1.0 / num_ref_pixels;
@@ -273,10 +287,10 @@ void av1_apply_temporal_filter_sse2(
       }
     }
 
-    apply_temporal_filter(ref, frame_stride, pred + mb_pels * plane, plane_w,
-                          plane_w, plane_h, subblock_mses,
-                          accum + mb_pels * plane, count + mb_pels * plane,
-                          frame_sse, luma_sse_sum, inv_num_ref_pixels,
-                          decay_factor, inv_factor, weight_factor, d_factor);
+    highbd_apply_temporal_filter(
+        ref, frame_stride, pred1 + mb_pels * plane, plane_w, plane_w, plane_h,
+        subblock_mses, accum + mb_pels * plane, count + mb_pels * plane,
+        frame_sse, luma_sse_sum, mbd->bd, inv_num_ref_pixels, decay_factor,
+        inv_factor, weight_factor, d_factor);
   }
 }

@@ -325,6 +325,7 @@ static void set_good_speed_features_framesize_independent(
       boosted || gf_group->update_type[gf_group->index] == INTNL_ARF_UPDATE;
   const int allow_screen_content_tools =
       cm->features.allow_screen_content_tools;
+  const int use_hbd = cpi->oxcf.use_highbitdepth;
   if (!cpi->oxcf.tile_cfg.enable_large_scale_tile) {
     sf->hl_sf.high_precision_mv_usage = LAST_MV_DATA;
   }
@@ -339,6 +340,7 @@ static void set_good_speed_features_framesize_independent(
   sf->part_sf.ml_prune_rect_partition = 1;
   sf->part_sf.prune_ext_partition_types_search_level = 1;
   sf->part_sf.simple_motion_search_prune_rect = 1;
+  sf->part_sf.ml_predict_breakout_level = use_hbd ? 1 : 3;
 
   sf->inter_sf.disable_wedge_search_var_thresh = 0;
   // TODO(debargha): Test, tweak and turn on either 1 or 2
@@ -370,7 +372,7 @@ static void set_good_speed_features_framesize_independent(
   sf->rt_sf.use_real_time_ref_set = 0;
 
   if (cpi->twopass.fr_content_type == FC_GRAPHICS_ANIMATION ||
-      cpi->is_screen_content_type) {
+      cpi->use_screen_content_tools) {
     sf->mv_sf.exhaustive_searches_thresh = (1 << 20);
   } else {
     sf->mv_sf.exhaustive_searches_thresh = (1 << 25);
@@ -388,6 +390,7 @@ static void set_good_speed_features_framesize_independent(
     // simple_motion_search_split in partition search function and set the
     // speed feature accordingly
     sf->part_sf.simple_motion_search_split = allow_screen_content_tools ? 1 : 2;
+    sf->part_sf.ml_predict_breakout_level = use_hbd ? 2 : 3;
 
     sf->mv_sf.exhaustive_searches_thresh <<= 1;
     sf->mv_sf.obmc_full_pixel_search_level = 1;
@@ -544,6 +547,7 @@ static void set_good_speed_features_framesize_independent(
     sf->part_sf.simple_motion_search_reduce_search_steps = 4;
     sf->part_sf.prune_ab_partition_using_split_info = 1;
     sf->part_sf.early_term_after_none_split = 1;
+    sf->part_sf.ml_predict_breakout_level = 3;
 
     sf->inter_sf.alt_ref_search_fp = 1;
     sf->inter_sf.txfm_rd_gate_level = boosted ? 0 : 4;
@@ -1014,6 +1018,7 @@ static AOM_INLINE void init_part_sf(PARTITION_SPEED_FEATURES *part_sf) {
   part_sf->prune_4_partition_using_split_info = 0;
   part_sf->prune_ab_partition_using_split_info = 0;
   part_sf->early_term_after_none_split = 0;
+  part_sf->ml_predict_breakout_level = 0;
 }
 
 static AOM_INLINE void init_mv_sf(MV_SPEED_FEATURES *mv_sf) {

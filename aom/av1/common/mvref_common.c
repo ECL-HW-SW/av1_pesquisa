@@ -1052,15 +1052,15 @@ void av1_setup_motion_field(AV1_COMMON *cm) {
 static INLINE void record_samples(const MB_MODE_INFO *mbmi, int *pts,
                                   int *pts_inref, int row_offset, int sign_r,
                                   int col_offset, int sign_c) {
-  int bw = block_size_wide[mbmi->sb_type];
-  int bh = block_size_high[mbmi->sb_type];
-  int x = col_offset * MI_SIZE + sign_c * AOMMAX(bw, MI_SIZE) / 2 - 1;
-  int y = row_offset * MI_SIZE + sign_r * AOMMAX(bh, MI_SIZE) / 2 - 1;
+  const int bw = block_size_wide[mbmi->sb_type];
+  const int bh = block_size_high[mbmi->sb_type];
+  const int x = col_offset * MI_SIZE + sign_c * bw / 2 - 1;
+  const int y = row_offset * MI_SIZE + sign_r * bh / 2 - 1;
 
   pts[0] = GET_MV_SUBPEL(x);
   pts[1] = GET_MV_SUBPEL(y);
-  pts_inref[0] = GET_MV_SUBPEL(x) + mbmi->mv[0].as_mv.col;
-  pts_inref[1] = GET_MV_SUBPEL(y) + mbmi->mv[0].as_mv.row;
+  pts_inref[0] = pts[0] + mbmi->mv[0].as_mv.col;
+  pts_inref[1] = pts[1] + mbmi->mv[0].as_mv.row;
 }
 
 // Select samples according to the motion vector difference.
@@ -1069,44 +1069,22 @@ uint8_t av1_selectSamples(MV *mv, int *pts, int *pts_inref, int len,
   const int bw = block_size_wide[bsize];
   const int bh = block_size_high[bsize];
   const int thresh = clamp(AOMMAX(bw, bh), 16, 112);
-  int pts_mvd[SAMPLES_ARRAY_SIZE] = { 0 };
-  int i, j, k, l = len;
   uint8_t ret = 0;
   assert(len <= LEAST_SQUARES_SAMPLES_MAX);
 
-  // Obtain the motion vector difference.
-  for (i = 0; i < len; ++i) {
-    pts_mvd[i] = abs(pts_inref[2 * i] - pts[2 * i] - mv->col) +
-                 abs(pts_inref[2 * i + 1] - pts[2 * i + 1] - mv->row);
-
-    if (pts_mvd[i] > thresh)
-      pts_mvd[i] = -1;
-    else
-      ret++;
+  // Only keep the samples with MV differences within threshold.
+  for (int i = 0; i < len; ++i) {
+    const int diff = abs(pts_inref[2 * i] - pts[2 * i] - mv->col) +
+                     abs(pts_inref[2 * i + 1] - pts[2 * i + 1] - mv->row);
+    if (diff > thresh) continue;
+    if (ret != i) {
+      memcpy(pts + 2 * ret, pts + 2 * i, 2 * sizeof(pts[0]));
+      memcpy(pts_inref + 2 * ret, pts_inref + 2 * i, 2 * sizeof(pts_inref[0]));
+    }
+    ++ret;
   }
-
   // Keep at least 1 sample.
-  if (!ret) return 1;
-
-  i = 0;
-  j = l - 1;
-  for (k = 0; k < l - ret; k++) {
-    while (pts_mvd[i] != -1) i++;
-    while (pts_mvd[j] == -1) j--;
-    assert(i != j);
-    if (i > j) break;
-
-    // Replace the discarded samples;
-    pts_mvd[i] = pts_mvd[j];
-    pts[2 * i] = pts[2 * j];
-    pts[2 * i + 1] = pts[2 * j + 1];
-    pts_inref[2 * i] = pts_inref[2 * j];
-    pts_inref[2 * i + 1] = pts_inref[2 * j + 1];
-    i++;
-    j--;
-  }
-
-  return ret;
+  return AOMMAX(ret, 1);
 }
 
 // Note: Samples returned are at 1/8-pel precision
@@ -1118,7 +1096,6 @@ uint8_t av1_findSamples(const AV1_COMMON *cm, MACROBLOCKD *xd, int *pts,
   const int ref_frame = mbmi0->ref_frame[0];
   const int up_available = xd->up_available;
   const int left_available = xd->left_available;
-  int i, mi_step;
   uint8_t np = 0;
   int do_tl = 1;
   int do_tr = 1;
@@ -1143,24 +1120,22 @@ uint8_t av1_findSamples(const AV1_COMMON *cm, MACROBLOCKD *xd, int *pts,
         record_samples(mbmi, pts, pts_inref, 0, -1, col_offset, 1);
         pts += 2;
         pts_inref += 2;
-        np++;
-        if (np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
+        if (++np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
       }
     } else {
       // Handle "current block width > above block width" case.
-      for (i = 0; i < AOMMIN(xd->width, cm->mi_params.mi_cols - mi_col);
-           i += mi_step) {
+      for (int i = 0; i < AOMMIN(xd->width, cm->mi_params.mi_cols - mi_col);
+           i += superblock_width) {
         mbmi = xd->mi[i + mi_row_offset * mi_stride];
         superblock_width = mi_size_wide[mbmi->sb_type];
-        mi_step = AOMMIN(xd->width, superblock_width);
 
         if (mbmi->ref_frame[0] == ref_frame &&
             mbmi->ref_frame[1] == NONE_FRAME) {
           record_samples(mbmi, pts, pts_inref, 0, -1, i, 1);
           pts += 2;
           pts_inref += 2;
-          np++;
-          if (np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
+          if (++np >= LEAST_SQUARES_SAMPLES_MAX)
+            return LEAST_SQUARES_SAMPLES_MAX;
         }
       }
     }
@@ -1188,19 +1163,18 @@ uint8_t av1_findSamples(const AV1_COMMON *cm, MACROBLOCKD *xd, int *pts,
       }
     } else {
       // Handle "current block height > above block height" case.
-      for (i = 0; i < AOMMIN(xd->height, cm->mi_params.mi_rows - mi_row);
-           i += mi_step) {
+      for (int i = 0; i < AOMMIN(xd->height, cm->mi_params.mi_rows - mi_row);
+           i += superblock_height) {
         mbmi = xd->mi[mi_col_offset + i * mi_stride];
         superblock_height = mi_size_high[mbmi->sb_type];
-        mi_step = AOMMIN(xd->height, superblock_height);
 
         if (mbmi->ref_frame[0] == ref_frame &&
             mbmi->ref_frame[1] == NONE_FRAME) {
           record_samples(mbmi, pts, pts_inref, i, 1, 0, -1);
           pts += 2;
           pts_inref += 2;
-          np++;
-          if (np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
+          if (++np >= LEAST_SQUARES_SAMPLES_MAX)
+            return LEAST_SQUARES_SAMPLES_MAX;
         }
       }
     }
@@ -1217,8 +1191,7 @@ uint8_t av1_findSamples(const AV1_COMMON *cm, MACROBLOCKD *xd, int *pts,
       record_samples(mbmi, pts, pts_inref, 0, -1, 0, -1);
       pts += 2;
       pts_inref += 2;
-      np++;
-      if (np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
+      if (++np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
     }
   }
   assert(np <= LEAST_SQUARES_SAMPLES_MAX);
@@ -1236,8 +1209,7 @@ uint8_t av1_findSamples(const AV1_COMMON *cm, MACROBLOCKD *xd, int *pts,
 
       if (mbmi->ref_frame[0] == ref_frame && mbmi->ref_frame[1] == NONE_FRAME) {
         record_samples(mbmi, pts, pts_inref, 0, -1, xd->width, 1);
-        np++;
-        if (np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
+        if (++np >= LEAST_SQUARES_SAMPLES_MAX) return LEAST_SQUARES_SAMPLES_MAX;
       }
     }
   }

@@ -1464,13 +1464,13 @@ static void define_gf_group_pass0(AV1_COMP *cpi,
   for (int cur_index = 0; cur_index < gf_group->size; ++cur_index) {
     const FRAME_UPDATE_TYPE cur_update_type = gf_group->update_type[cur_index];
     if (oxcf->rc_cfg.mode == AOM_CBR) {
-      if (cur_update_type == KEY_FRAME) {
+      if (cur_update_type == KF_UPDATE) {
         target = av1_calc_iframe_target_size_one_pass_cbr(cpi);
       } else {
         target = av1_calc_pframe_target_size_one_pass_cbr(cpi, cur_update_type);
       }
     } else {
-      if (cur_update_type == KEY_FRAME) {
+      if (cur_update_type == KF_UPDATE) {
         target = av1_calc_iframe_target_size_one_pass_vbr(cpi);
       } else {
         target = av1_calc_pframe_target_size_one_pass_vbr(cpi, cur_update_type);
@@ -2796,7 +2796,7 @@ void av1_get_second_pass_params(AV1_COMP *cpi,
   }
 
   // Keyframe and section processing.
-  if (rc->frames_to_key <= 0 || (frame_flags & FRAMEFLAGS_KEY)) {
+  if (rc->frames_to_key <= 0) {
     assert(rc->frames_to_key >= -1);
     FIRSTPASS_STATS this_frame_copy;
     this_frame_copy = this_frame;
