@@ -468,6 +468,11 @@ typedef struct {
    * candidate, then code it as TX_MODE_SELECT.
    */
   TX_MODE tx_mode_search_type;
+
+  /*!
+   * Flag to enable/disable DC block prediction.
+   */
+  unsigned int predict_dc_level;
 } TxfmSearchParams;
 
 /*!\cond */
@@ -1167,7 +1172,7 @@ static INLINE int is_rect_tx_allowed_bsize(BLOCK_SIZE bsize) {
 
 static INLINE int is_rect_tx_allowed(const MACROBLOCKD *xd,
                                      const MB_MODE_INFO *mbmi) {
-  return is_rect_tx_allowed_bsize(mbmi->sb_type) &&
+  return is_rect_tx_allowed_bsize(mbmi->bsize) &&
          !xd->lossless[mbmi->segment_id];
 }
 

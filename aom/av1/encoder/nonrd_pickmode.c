@@ -380,55 +380,15 @@ static void estimate_single_ref_frame_costs(const AV1_COMMON *cm,
     ref_costs_single[INTRA_FRAME] =
         mode_costs->intra_inter_cost[intra_inter_ctx][0];
     unsigned int base_cost = mode_costs->intra_inter_cost[intra_inter_ctx][1];
-
-    for (int i = LAST_FRAME; i <= ALTREF_FRAME; ++i)
-      ref_costs_single[i] = base_cost;
-
-    const int ctx_p1 = av1_get_pred_context_single_ref_p1(xd);
-    const int ctx_p2 = av1_get_pred_context_single_ref_p2(xd);
-    const int ctx_p3 = av1_get_pred_context_single_ref_p3(xd);
-    const int ctx_p4 = av1_get_pred_context_single_ref_p4(xd);
-    const int ctx_p5 = av1_get_pred_context_single_ref_p5(xd);
-    const int ctx_p6 = av1_get_pred_context_single_ref_p6(xd);
-
-    // Determine cost of a single ref frame, where frame types are represented
-    // by a tree:
-    // Level 0: add cost whether this ref is a forward or backward ref
-    ref_costs_single[LAST_FRAME] += mode_costs->single_ref_cost[ctx_p1][0][0];
-    ref_costs_single[LAST2_FRAME] += mode_costs->single_ref_cost[ctx_p1][0][0];
-    ref_costs_single[LAST3_FRAME] += mode_costs->single_ref_cost[ctx_p1][0][0];
-    ref_costs_single[GOLDEN_FRAME] += mode_costs->single_ref_cost[ctx_p1][0][0];
-    ref_costs_single[BWDREF_FRAME] += mode_costs->single_ref_cost[ctx_p1][0][1];
-    ref_costs_single[ALTREF2_FRAME] +=
-        mode_costs->single_ref_cost[ctx_p1][0][1];
-    ref_costs_single[ALTREF_FRAME] += mode_costs->single_ref_cost[ctx_p1][0][1];
-
-    // Level 1: if this ref is forward ref,
-    // add cost whether it is last/last2 or last3/golden
-    ref_costs_single[LAST_FRAME] += mode_costs->single_ref_cost[ctx_p3][2][0];
-    ref_costs_single[LAST2_FRAME] += mode_costs->single_ref_cost[ctx_p3][2][0];
-    ref_costs_single[LAST3_FRAME] += mode_costs->single_ref_cost[ctx_p3][2][1];
-    ref_costs_single[GOLDEN_FRAME] += mode_costs->single_ref_cost[ctx_p3][2][1];
-
-    // Level 1: if this ref is backward ref
-    // then add cost whether this ref is altref or backward ref
-    ref_costs_single[BWDREF_FRAME] += mode_costs->single_ref_cost[ctx_p2][1][0];
-    ref_costs_single[ALTREF2_FRAME] +=
-        mode_costs->single_ref_cost[ctx_p2][1][0];
-    ref_costs_single[ALTREF_FRAME] += mode_costs->single_ref_cost[ctx_p2][1][1];
-
-    // Level 2: further add cost whether this ref is last or last2
-    ref_costs_single[LAST_FRAME] += mode_costs->single_ref_cost[ctx_p4][3][0];
-    ref_costs_single[LAST2_FRAME] += mode_costs->single_ref_cost[ctx_p4][3][1];
-
-    // Level 2: last3 or golden
-    ref_costs_single[LAST3_FRAME] += mode_costs->single_ref_cost[ctx_p5][4][0];
-    ref_costs_single[GOLDEN_FRAME] += mode_costs->single_ref_cost[ctx_p5][4][1];
-
-    // Level 2: bwdref or altref2
-    ref_costs_single[BWDREF_FRAME] += mode_costs->single_ref_cost[ctx_p6][5][0];
-    ref_costs_single[ALTREF2_FRAME] +=
-        mode_costs->single_ref_cost[ctx_p6][5][1];
+    ref_costs_single[LAST_FRAME] = base_cost;
+    ref_costs_single[GOLDEN_FRAME] = base_cost;
+    ref_costs_single[ALTREF_FRAME] = base_cost;
+    // add cost for last, golden, altref
+    ref_costs_single[LAST_FRAME] += mode_costs->single_ref_cost[0][0][0];
+    ref_costs_single[GOLDEN_FRAME] += mode_costs->single_ref_cost[0][0][1];
+    ref_costs_single[GOLDEN_FRAME] += mode_costs->single_ref_cost[0][1][0];
+    ref_costs_single[ALTREF_FRAME] += mode_costs->single_ref_cost[0][0][1];
+    ref_costs_single[ALTREF_FRAME] += mode_costs->single_ref_cost[0][2][0];
   }
 }
 
@@ -1649,7 +1609,8 @@ static AOM_INLINE void get_ref_frame_use_mask(AV1_COMP *cpi, MACROBLOCK *x,
   const struct segmentation *const seg = &cm->seg;
   const int is_small_sb = (cm->seq_params.sb_size == BLOCK_64X64);
 
-  int use_alt_ref_frame = cpi->sf.rt_sf.use_nonrd_altref_frame;
+  // For SVC the usage of alt_ref is determined by the ref_frame_flags.
+  int use_alt_ref_frame = cpi->use_svc || cpi->sf.rt_sf.use_nonrd_altref_frame;
   int use_golden_ref_frame = 1;
 
   use_ref_frame[LAST_FRAME] = 1;  // we never skip LAST
@@ -1753,9 +1714,10 @@ static void estimate_intra_mode(
   uint32_t spatial_var_thresh = 50;
   int motion_thresh = 32;
   // Adjust thresholds to make intra mode likely tested if the other
-  // references (golden, alt) are skipped/not checked.
-  if (cpi->sf.rt_sf.use_nonrd_altref_frame == 0 &&
-      cpi->sf.rt_sf.nonrd_prune_ref_frame_search > 0) {
+  // references (golden, alt) are skipped/not checked. For now always
+  // adjust for svc mode.
+  if (cpi->use_svc || (cpi->sf.rt_sf.use_nonrd_altref_frame == 0 &&
+                       cpi->sf.rt_sf.nonrd_prune_ref_frame_search > 0)) {
     spatial_var_thresh = 150;
     motion_thresh = 0;
   }
@@ -2017,8 +1979,6 @@ void av1_nonrd_pick_inter_mode_sb(AV1_COMP *cpi, TileDataEnc *tile_data,
 
   init_best_pickmode(&best_pickmode);
 
-  av1_collect_neighbors_ref_counts(xd);
-
   const ModeCosts *mode_costs = &x->mode_costs;
 
   estimate_single_ref_frame_costs(cm, xd, mode_costs, segment_id,
@@ -2045,7 +2005,7 @@ void av1_nonrd_pick_inter_mode_sb(AV1_COMP *cpi, TileDataEnc *tile_data,
   av1_invalid_rd_stats(&best_rdc);
   av1_invalid_rd_stats(&this_rdc);
   av1_invalid_rd_stats(rd_cost);
-  mi->sb_type = bsize;
+  mi->bsize = bsize;
   mi->ref_frame[0] = NONE_FRAME;
   mi->ref_frame[1] = NONE_FRAME;
 

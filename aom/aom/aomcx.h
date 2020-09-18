@@ -855,7 +855,17 @@ enum aome_enc_control_id {
    */
   AV1E_SET_ENABLE_FLIP_IDTX = 81,
 
-  /* Note: enum value 82 unused */
+  /*!\brief Codec control function to turn on / off rectangular transforms, int
+   * parameter
+   *
+   * This will enable or disable usage of rectangular transforms. NOTE:
+   * Rectangular transforms only enabled when corresponding rectangular
+   * partitions are.
+   *
+   * - 0 = disable
+   * - 1 = enable (default)
+   */
+  AV1E_SET_ENABLE_RECT_TX = 82,
 
   /*!\brief Codec control function to turn on / off dist-wtd compound mode
    * at sequence level, int parameter
@@ -1364,7 +1374,8 @@ typedef enum {
   /* NOTE: enums 2 and 3 unused */
   AOM_TUNE_VMAF_WITH_PREPROCESSING = 4,
   AOM_TUNE_VMAF_WITHOUT_PREPROCESSING = 5,
-  AOM_TUNE_VMAF_MAX_GAIN = 6
+  AOM_TUNE_VMAF_MAX_GAIN = 6,
+  AOM_TUNE_VMAF_NEG_MAX_GAIN = 7,
 } aom_tune_metric;
 
 #define AOM_MAX_LAYERS 32   /**< Max number of layers */
@@ -1562,6 +1573,9 @@ AOM_CTRL_USE_TYPE(AV1E_SET_ENABLE_TX64, int)
 
 AOM_CTRL_USE_TYPE(AV1E_SET_ENABLE_FLIP_IDTX, int)
 #define AOM_CTRL_AV1E_SET_ENABLE_FLIP_IDTX
+
+AOM_CTRL_USE_TYPE(AV1E_SET_ENABLE_RECT_TX, int)
+#define AOM_CTRL_AV1E_SET_ENABLE_RECT_TX
 
 AOM_CTRL_USE_TYPE(AV1E_SET_ENABLE_DIST_WTD_COMP, int)
 #define AOM_CTRL_AV1E_SET_ENABLE_DIST_WTD_COMP

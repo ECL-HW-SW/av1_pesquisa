@@ -498,8 +498,6 @@ static void process_tpl_stats_frame(AV1_COMP *cpi) {
     int tpl_stride = tpl_frame->stride;
     int64_t intra_cost_base = 0;
     int64_t mc_dep_cost_base = 0;
-    int64_t mc_saved_base = 0;
-    int64_t mc_count_base = 0;
     const int step = 1 << tpl_data->tpl_stats_block_mis_log2;
     const int mi_cols_sr = av1_pixels_to_mi(cm->superres_upscaled_width);
 
@@ -513,8 +511,6 @@ static void process_tpl_stats_frame(AV1_COMP *cpi) {
         intra_cost_base += (this_stats->recrf_dist << RDDIV_BITS);
         mc_dep_cost_base +=
             (this_stats->recrf_dist << RDDIV_BITS) + mc_dep_delta;
-        mc_count_base += this_stats->mc_count;
-        mc_saved_base += this_stats->mc_saved;
       }
     }
 
@@ -541,10 +537,6 @@ static void process_tpl_stats_frame(AV1_COMP *cpi) {
               cpi->rc.gfu_boost, gfu_boost, cpi->rc.frames_to_key);
         }
       }
-      cpi->rd.mc_count_base = (double)mc_count_base /
-                              (cm->mi_params.mi_rows * cm->mi_params.mi_cols);
-      cpi->rd.mc_saved_base = (double)mc_saved_base /
-                              (cm->mi_params.mi_rows * cm->mi_params.mi_cols);
       aom_clear_system_state();
     }
   }
@@ -976,22 +968,9 @@ void av1_determine_sc_tools_with_encoding(AV1_COMP *cpi, const int q_orig) {
   // content tools, with a high q and fixed partition.
   for (int pass = 0; pass < 2; ++pass) {
     set_encoding_params_for_screen_content(cpi, pass);
-#if CONFIG_TUNE_VMAF
-    if (oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_WITH_PREPROCESSING ||
-        oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_WITHOUT_PREPROCESSING ||
-        oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_MAX_GAIN) {
-      av1_set_quantizer(
-          cm, q_cfg->qm_minlevel, q_cfg->qm_maxlevel,
-          av1_get_vmaf_base_qindex(cpi, q_for_screen_content_quick_run),
-          q_cfg->enable_chroma_deltaq);
-    } else {
-#endif
-      av1_set_quantizer(cm, q_cfg->qm_minlevel, q_cfg->qm_maxlevel,
-                        q_for_screen_content_quick_run,
-                        q_cfg->enable_chroma_deltaq);
-#if CONFIG_TUNE_VMAF
-    }
-#endif
+    av1_set_quantizer(cm, q_cfg->qm_minlevel, q_cfg->qm_maxlevel,
+                      q_for_screen_content_quick_run,
+                      q_cfg->enable_chroma_deltaq);
     av1_set_speed_features_qindex_dependent(cpi, oxcf->speed);
     if (q_cfg->deltaq_mode != NO_DELTA_Q)
       av1_init_quantizer(&cpi->enc_quant_dequant_params, &cm->quant_params,

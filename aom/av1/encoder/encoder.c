@@ -901,6 +901,7 @@ AV1_COMP *av1_create_compressor(AV1EncoderConfig *oxcf, BufferPool *const pool,
   cpi->psnr[0].worst = 100.0;
   cpi->psnr[1].worst = 100.0;
   cpi->worst_ssim = 100.0;
+  cpi->worst_ssim_hbd = 100.0;
 
   cpi->count[0] = 0;
   cpi->count[1] = 0;
@@ -917,6 +918,8 @@ AV1_COMP *av1_create_compressor(AV1EncoderConfig *oxcf, BufferPool *const pool,
     cpi->tot_recode_hits = 0;
     cpi->summed_quality = 0;
     cpi->summed_weights = 0;
+    cpi->summed_quality_hbd = 0;
+    cpi->summed_weights_hbd = 0;
   }
 
   cpi->fastssim.worst = 100.0;
@@ -1037,6 +1040,12 @@ AV1_COMP *av1_create_compressor(AV1EncoderConfig *oxcf, BufferPool *const pool,
                     aom_calloc(num_rows * num_cols,
                                sizeof(*cpi->vmaf_info.rdmult_scaling_factors)));
     cpi->vmaf_info.last_frame_unsharp_amount = 0.0;
+    cpi->vmaf_info.best_unsharp_amount = 0.0;
+    cpi->vmaf_info.original_qindex = -1;
+
+#if CONFIG_USE_VMAF_RC
+    cpi->vmaf_info.vmaf_model = NULL;
+#endif
   }
 #endif
 
@@ -1448,9 +1457,12 @@ void av1_remove_compressor(AV1_COMP *cpi) {
           const double total_psnr_hbd =
               aom_sse_to_psnr((double)cpi->total_samples[1], peak_hbd,
                               (double)cpi->total_sq_error[1]);
+          const double total_ssim_hbd =
+              100 * pow(cpi->summed_quality_hbd / cpi->summed_weights_hbd, 8.0);
           SNPRINT(headings,
                   "\t AVGPsnrH GLBPsnrH AVPsnrPH GLPsnrPH"
-                  " AVPsnrYH APsnrCbH APsnrCrH WstPsnrH");
+                  " AVPsnrYH APsnrCbH APsnrCrH WstPsnrH"
+                  " AOMSSIMH VPSSIMPH WstSsimH");
           SNPRINT2(results, "\t%7.3f",
                    cpi->psnr[1].stat[STAT_ALL] / cpi->count[1]);
           SNPRINT2(results, "  %7.3f", total_psnr_hbd);
@@ -1464,6 +1476,9 @@ void av1_remove_compressor(AV1_COMP *cpi) {
           SNPRINT2(results, "  %7.3f",
                    cpi->psnr[1].stat[STAT_V] / cpi->count[1]);
           SNPRINT2(results, "  %7.3f", cpi->psnr[1].worst);
+          SNPRINT2(results, "  %7.3f", total_ssim_hbd);
+          SNPRINT2(results, "  %7.3f", total_ssim_hbd);
+          SNPRINT2(results, "  %7.3f", cpi->worst_ssim_hbd);
         }
 #endif
         fprintf(f, "%s\n", headings);
@@ -1764,13 +1779,14 @@ void av1_set_screen_content_options(AV1_COMP *cpi, FeatureFlags *features) {
 
 // Function pointer to search site config initialization
 // of different search method functions.
-typedef void (*av1_init_search_site_config)(search_site_config *cfg,
-                                            int stride);
+typedef void (*av1_init_search_site_config)(search_site_config *cfg, int stride,
+                                            int level);
 
 av1_init_search_site_config
     av1_init_motion_compensation[NUM_DISTINCT_SEARCH_METHODS] = {
-      av1_init_dsmotion_compensation, av1_init_motion_compensation_nstep,
-      av1_init_motion_compensation_hex, av1_init_motion_compensation_bigdia,
+      av1_init_dsmotion_compensation,     av1_init_motion_compensation_nstep,
+      av1_init_motion_compensation_nstep, av1_init_dsmotion_compensation,
+      av1_init_motion_compensation_hex,   av1_init_motion_compensation_bigdia,
       av1_init_motion_compensation_square
     };
 
@@ -1800,10 +1816,12 @@ static void init_motion_estimation(AV1_COMP *cpi) {
 
   // Initialization of search_site_cfg for NUM_DISTINCT_SEARCH_METHODS.
   for (SEARCH_METHODS i = DIAMOND; i < NUM_DISTINCT_SEARCH_METHODS; i++) {
+    const int level = ((i == NSTEP_8PT) || (i == CLAMPED_DIAMOND)) ? 1 : 0;
     av1_init_motion_compensation[i](
-        &mv_search_params->search_site_cfg[SS_CFG_SRC][i], y_stride);
+        &mv_search_params->search_site_cfg[SS_CFG_SRC][i], y_stride, level);
     av1_init_motion_compensation[i](
-        &mv_search_params->search_site_cfg[SS_CFG_LOOKAHEAD][i], y_stride_src);
+        &mv_search_params->search_site_cfg[SS_CFG_LOOKAHEAD][i], y_stride_src,
+        level);
   }
 
   // First pass search site config initialization.
@@ -2353,6 +2371,12 @@ static int encode_with_recode_loop(AV1_COMP *cpi, size_t *size, uint8_t *dest) {
   // Determine whether to use screen content tools using two fast encoding.
   av1_determine_sc_tools_with_encoding(cpi, q);
 
+#if CONFIG_USE_VMAF_RC
+  if (oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_NEG_MAX_GAIN) {
+    av1_vmaf_neg_preprocessing(cpi, cpi->unscaled_source);
+  }
+#endif
+
   // Loop variables
   int loop = 0;
   int loop_count = 0;
@@ -2389,19 +2413,14 @@ static int encode_with_recode_loop(AV1_COMP *cpi, size_t *size, uint8_t *dest) {
       av1_scale_references(cpi, EIGHTTAP_REGULAR, 0, 0);
     }
 #if CONFIG_TUNE_VMAF
-    if (oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_WITH_PREPROCESSING ||
-        oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_WITHOUT_PREPROCESSING ||
-        oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_MAX_GAIN) {
-      av1_set_quantizer(cm, q_cfg->qm_minlevel, q_cfg->qm_maxlevel,
-                        av1_get_vmaf_base_qindex(cpi, q),
-                        q_cfg->enable_chroma_deltaq);
-    } else {
-#endif
-      av1_set_quantizer(cm, q_cfg->qm_minlevel, q_cfg->qm_maxlevel, q,
-                        q_cfg->enable_chroma_deltaq);
-#if CONFIG_TUNE_VMAF
+    if (oxcf->tune_cfg.tuning >= AOM_TUNE_VMAF_WITH_PREPROCESSING &&
+        oxcf->tune_cfg.tuning <= AOM_TUNE_VMAF_NEG_MAX_GAIN) {
+      cpi->vmaf_info.original_qindex = q;
+      q = av1_get_vmaf_base_qindex(cpi, q);
     }
 #endif
+    av1_set_quantizer(cm, q_cfg->qm_minlevel, q_cfg->qm_maxlevel, q,
+                      q_cfg->enable_chroma_deltaq);
     av1_set_speed_features_qindex_dependent(cpi, oxcf->speed);
 
     if (q_cfg->deltaq_mode != NO_DELTA_Q)
@@ -2497,6 +2516,12 @@ static int encode_with_recode_loop(AV1_COMP *cpi, size_t *size, uint8_t *dest) {
       rc->projected_frame_size = (int)(*size) << 3;
     }
 
+#if CONFIG_TUNE_VMAF
+    if (oxcf->tune_cfg.tuning >= AOM_TUNE_VMAF_WITH_PREPROCESSING &&
+        oxcf->tune_cfg.tuning <= AOM_TUNE_VMAF_NEG_MAX_GAIN) {
+      q = cpi->vmaf_info.original_qindex;
+    }
+#endif
     if (allow_recode) {
       // Update q and decide whether to do a recode loop
       recode_loop_update_q(cpi, &loop, &q, &q_low, &q_high, top_index,
@@ -2745,7 +2770,8 @@ static int encode_with_and_without_superres(AV1_COMP *cpi, size_t *size,
     const int64_t this_sse = superres_sses[this_index];
     const int64_t this_rate = superres_rates[this_index];
     const int this_largest_tile_id = superres_largest_tile_ids[this_index];
-    const double this_rdcost = RDCOST_DBL(rdmult, this_rate, this_sse);
+    const double this_rdcost = RDCOST_DBL_WITH_NATIVE_BD_DIST(
+        rdmult, this_rate, this_sse, cm->seq_params.bit_depth);
     if (this_rdcost < proj_rdcost1) {
       sse1 = this_sse;
       rate1 = this_rate;
@@ -2755,9 +2781,11 @@ static int encode_with_and_without_superres(AV1_COMP *cpi, size_t *size,
     }
   }
 #else
-  const double proj_rdcost1 = RDCOST_DBL(rdmult, rate1, sse1);
+  const double proj_rdcost1 = RDCOST_DBL_WITH_NATIVE_BD_DIST(
+      rdmult, rate1, sse1, cm->seq_params.bit_depth);
 #endif  // SUPERRES_RECODE_ALL_RATIOS
-  const double proj_rdcost2 = RDCOST_DBL(rdmult, rate2, sse2);
+  const double proj_rdcost2 = RDCOST_DBL_WITH_NATIVE_BD_DIST(
+      rdmult, rate2, sse2, cm->seq_params.bit_depth);
 
   // Re-encode with superres if it's better.
   if (proj_rdcost1 < proj_rdcost2) {
@@ -2966,7 +2994,8 @@ static int encode_frame_to_data_rate(AV1_COMP *cpi, size_t *size,
 
 #if CONFIG_TUNE_VMAF
   if (oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_WITHOUT_PREPROCESSING ||
-      oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_MAX_GAIN) {
+      oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_MAX_GAIN ||
+      oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_NEG_MAX_GAIN) {
     av1_set_mb_vmaf_rdmult_scaling(cpi);
   }
 #endif
@@ -3188,8 +3217,15 @@ int av1_encode(AV1_COMP *const cpi, uint8_t *const dest,
   if (current_frame->frame_type == KEY_FRAME && !cpi->no_show_fwd_kf)
     current_frame->frame_number = 0;
 
-  current_frame->order_hint =
-      current_frame->frame_number + frame_params->order_offset;
+  if (av1_check_keyframe_overlay(cpi->gf_group.index, &cpi->gf_group,
+                                 cpi->rc.frames_since_key)) {
+    current_frame->order_hint =
+        current_frame->frame_number + frame_params->order_offset - 1;
+  } else {
+    current_frame->order_hint =
+        current_frame->frame_number + frame_params->order_offset;
+  }
+
   current_frame->display_order_hint = current_frame->order_hint;
   current_frame->order_hint %=
       (1 << (cm->seq_params.order_hint_info.order_hint_bits_minus_1 + 1));
@@ -3347,7 +3383,8 @@ static void compute_internal_stats(AV1_COMP *cpi, int frame_bytes) {
     cpi->count[1]++;
     if (cpi->b_calculate_psnr) {
       PSNR_STATS psnr;
-      double frame_ssim2 = 0.0, weight = 0.0;
+      double weight[2] = { 0.0, 0.0 };
+      double frame_ssim2[2] = { 0.0, 0.0 };
       aom_clear_system_state();
 #if CONFIG_AV1_HIGHBITDEPTH
       aom_calc_highbd_psnr(orig, recon, &psnr, bit_depth, in_bit_depth);
@@ -3362,14 +3399,14 @@ static void compute_internal_stats(AV1_COMP *cpi, int frame_bytes) {
 
       // TODO(yaowu): unify these two versions into one.
       if (cm->seq_params.use_highbitdepth)
-        frame_ssim2 =
-            aom_highbd_calc_ssim(orig, recon, &weight, bit_depth, in_bit_depth);
+        aom_highbd_calc_ssim(orig, recon, weight, bit_depth, in_bit_depth,
+                             frame_ssim2);
       else
-        frame_ssim2 = aom_calc_ssim(orig, recon, &weight);
+        aom_calc_ssim(orig, recon, &weight[0], &frame_ssim2[0]);
 
-      cpi->worst_ssim = AOMMIN(cpi->worst_ssim, frame_ssim2);
-      cpi->summed_quality += frame_ssim2 * weight;
-      cpi->summed_weights += weight;
+      cpi->worst_ssim = AOMMIN(cpi->worst_ssim, frame_ssim2[0]);
+      cpi->summed_quality += frame_ssim2[0] * weight[0];
+      cpi->summed_weights += weight[0];
 
 #if CONFIG_AV1_HIGHBITDEPTH
       // Compute PSNR based on stream bit depth
@@ -3379,6 +3416,10 @@ static void compute_internal_stats(AV1_COMP *cpi, int frame_bytes) {
                           psnr.psnr_hbd[0], &cpi->psnr[1]);
         cpi->total_sq_error[1] += psnr.sse_hbd[0];
         cpi->total_samples[1] += psnr.samples_hbd[0];
+
+        cpi->worst_ssim_hbd = AOMMIN(cpi->worst_ssim_hbd, frame_ssim2[1]);
+        cpi->summed_quality_hbd += frame_ssim2[1] * weight[1];
+        cpi->summed_weights_hbd += weight[1];
       }
 #endif
 
@@ -3491,15 +3532,6 @@ int av1_get_compressed_data(AV1_COMP *cpi, unsigned int *frame_flags,
       generate_psnr_packet(cpi);
     }
   }
-
-#if CONFIG_TUNE_VMAF
-  if (!is_stat_generation_stage(cpi) &&
-      (oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_WITH_PREPROCESSING ||
-       oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_WITHOUT_PREPROCESSING ||
-       oxcf->tune_cfg.tuning == AOM_TUNE_VMAF_MAX_GAIN)) {
-    av1_update_vmaf_curve(cpi, cpi->source, &cpi->common.cur_frame->buf);
-  }
-#endif
 
   if (cpi->level_params.keep_level_stats && !is_stat_generation_stage(cpi)) {
     // Initialize level info. at the beginning of each sequence.

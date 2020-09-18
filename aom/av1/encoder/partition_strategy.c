@@ -490,8 +490,8 @@ static AOM_INLINE void simple_motion_search_prune_part_features(
   // Neighbor stuff
   const int has_above = !!xd->above_mbmi;
   const int has_left = !!xd->left_mbmi;
-  const BLOCK_SIZE above_bsize = has_above ? xd->above_mbmi->sb_type : bsize;
-  const BLOCK_SIZE left_bsize = has_left ? xd->left_mbmi->sb_type : bsize;
+  const BLOCK_SIZE above_bsize = has_above ? xd->above_mbmi->bsize : bsize;
+  const BLOCK_SIZE left_bsize = has_left ? xd->left_mbmi->bsize : bsize;
   features[f_idx++] = (float)has_above;
   features[f_idx++] = (float)mi_size_wide_log2[above_bsize];
   features[f_idx++] = (float)mi_size_high_log2[above_bsize];
@@ -1302,6 +1302,27 @@ void av1_prune_partitions_before_search(
     int *do_square_split, int *prune_horz, int *prune_vert) {
   const AV1_COMMON *const cm = &cpi->common;
   const CommonModeInfoParams *const mi_params = &cm->mi_params;
+
+  // Prune rectangular, AB and 4-way partition based on q index and block size
+  if (cpi->sf.part_sf.prune_rectangular_split_based_on_qidx) {
+    // Enumeration difference between two square partitions
+    const int sqr_bsize_step = BLOCK_32X32 - BLOCK_16X16;
+    int max_bsize =
+        BLOCK_32X32 - (x->qindex * 3 / QINDEX_RANGE) * sqr_bsize_step;
+    max_bsize = AOMMAX(max_bsize, BLOCK_4X4);
+    const BLOCK_SIZE max_prune_bsize =
+        (BLOCK_SIZE)AOMMIN(max_bsize, BLOCK_32X32);
+
+    // Prune partition
+    // qidx 0 to 85: prune bsize below BLOCK_32X32
+    // qidx 86 to 170: prune bsize below BLOCK_16X16
+    // qidx 171 to 255: prune bsize below BLOCK_8X8
+    if (bsize < max_prune_bsize) {
+      *do_rectangular_split = 0;
+      *partition_horz_allowed = 0;
+      *partition_vert_allowed = 0;
+    }
+  }
 
   // A CNN-based speed feature pruning out either split or all non-split
   // partition in INTRA frame coding.

@@ -1,2 +1,43 @@
-Pass 1/2 frame    1/0          0B       0 us 0.00 fpm [ETA  unknown] [KPass 1/2 frame    2/0          0B    4285 us 466.74 fps [ETA  unknown] [KPass 1/2 frame    3/0          0B    4380 us 684.93 fps [ETA  unknown] [KPass 1/2 frame    4/0          0B    4477 us 893.46 fps [ETA  unknown] [KPass 1/2 frame    5/0          0B    4550 us 1098.90 fps [ETA  unknown] [K[KPass 1/2 frame    5/6       1248B    1996b/f   47904b/s  139681 us (35.80 fps)[K
-Pass 2/2 frame    1/0          0B  139684 us 7.16 fps [ETA  unknown] [KPass 2/2 frame    2/0          0B  144842 us 13.81 fps [ETA  unknown] [KPass 2/2 frame    3/0          0B  144952 us 20.70 fps [ETA  unknown] [KPass 2/2 frame    4/0          0B  145047 us 27.58 fps [ETA  unknown] [KPass 2/2 frame    5/0          0B  145156 us 34.45 fps [ETA  unknown] [K  13380F[K   4202F[K      5F[K    118F[K     28F[K[KPass 2/2 frame    5/5      17733B   28372b/f  680928b/s  177038 ms (0.03 fps)[K
+Codec: AOMedia Project AV1 Encoder 2.0.0-762-g7e235b0d9
+Source file: /home/icaro/Videos/av1_sets/DirtBike_426x240_24_120f_8bit_420.y4m File Type: Y4M Format: I420
+Destination file: /home/icaro/av1_pesquisa/.vscode/TEST_DirtBike_426x240_24_120f_8bit_420_22qp_30fframes_gprof_noOPT.bin
+Coding path: LBD
+Encoder parameters:
+    g_usage                      = 0
+    g_threads                    = 1
+    g_profile                    = 0
+    g_w                          = 426
+    g_h                          = 240
+    g_bit_depth                  = 8
+    g_input_bit_depth            = 8
+    g_timebase.num               = 1
+    g_timebase.den               = 24
+    g_error_resilient            = 0
+    g_pass                       = 0
+    g_lag_in_frames              = 19
+    large_scale_tile             = 0
+    rc_dropframe_thresh          = 0
+    rc_resize_mode               = 0
+    rc_resize_denominator        = 8
+    rc_resize_kf_denominator     = 8
+    rc_superres_mode             = 0
+    rc_superres_denominator      = 8
+    rc_superres_kf_denominator   = 8
+    rc_superres_qthresh          = 63
+    rc_superres_kf_qthresh       = 32
+    rc_end_usage                 = 0
+    rc_target_bitrate            = 256
+    rc_min_quantizer             = 0
+    rc_max_quantizer             = 63
+    rc_undershoot_pct            = 25
+    rc_overshoot_pct             = 25
+    rc_buf_sz                    = 6000
+    rc_buf_initial_sz            = 4000
+    rc_buf_optimal_sz            = 5000
+    rc_2pass_vbr_bias_pct        = 50
+    rc_2pass_vbr_minsection_pct  = 0
+    rc_2pass_vbr_maxsection_pct  = 2000
+    fwd_kf_enabled               = 0
+    kf_mode                      = 1
+    kf_min_dist                  = 0
+    kf_max_dist                  = 9999

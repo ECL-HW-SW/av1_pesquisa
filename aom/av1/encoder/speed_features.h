@@ -470,6 +470,9 @@ typedef struct PARTITION_SPEED_FEATURES {
   // Prune AB partition search using split and HORZ/VERT info
   int prune_ab_partition_using_split_info;
 
+  // Prunt rectangular, AB and 4-way partition based on q index and block size
+  int prune_rectangular_split_based_on_qidx;
+
   // Terminate partition search for child partition,
   // when NONE and SPLIT partition rd_costs are INT64_MAX.
   int early_term_after_none_split;
@@ -886,11 +889,20 @@ typedef struct WINNER_MODE_SPEED_FEATURES {
   // 0: speed feature OFF
   // 1 / 2 : Use configured number of winner candidates
   int motion_mode_for_winner_cand;
+
+  // Early DC only txfm block prediction
+  // 0: speed feature OFF
+  // 1 / 2 : Use the configured level for different modes
+  int dc_blk_pred_level;
 } WINNER_MODE_SPEED_FEATURES;
 
 typedef struct LOOP_FILTER_SPEED_FEATURES {
   // This feature controls how the loop filter level is determined.
   LPF_PICK_METHOD lpf_pick;
+
+  // Skip some final iterations in the determination of the best loop filter
+  // level.
+  int use_coarse_filter_level_search;
 
   // Control how the CDEF strength is determined.
   CDEF_PICK_METHOD cdef_pick_method;
