@@ -2060,6 +2060,7 @@ static void encode_frame(struct stream_state *stream,
   }
 
   aom_usec_timer_start(&timer);
+  // @grellert: codifica o quadro
   aom_codec_encode(&stream->encoder, img, frame_start,
                    (uint32_t)(next_frame_start - frame_start), 0);
   aom_usec_timer_mark(&timer);
@@ -2388,6 +2389,7 @@ int main(int argc, const char **argv_) {
   if (get_fourcc_by_aom_encoder(global.codec) == AV1_FOURCC)
     input.only_i420 = 0;
 
+  // @grellert: para cada passada
   for (pass = global.pass ? global.pass - 1 : 0; pass < global.passes; pass++) {
     int frames_in = 0, seen_frames = 0;
     int64_t estimated_time_left = -1;
@@ -2655,10 +2657,13 @@ int main(int argc, const char **argv_) {
     frame_avail = 1;
     got_data = 0;
 
+    //@grellert: para cada quadro
     while (frame_avail || got_data) {
       struct aom_usec_timer timer;
 
       if (!global.limit || frames_in < global.limit) {
+        
+        //@grellert: lê um quadro
         frame_avail = read_frame(&input, &raw);
 
         if (frame_avail) frames_in++;
@@ -2714,6 +2719,8 @@ int main(int argc, const char **argv_) {
           };
         } else {
           assert((frame_to_encode->fmt & AOM_IMG_FMT_HIGHBITDEPTH) == 0);
+
+          // @grellert: codifica o quadro
           FOREACH_STREAM(stream, streams) {
             encode_frame(stream, &global, frame_avail ? frame_to_encode : NULL,
                          frames_in);

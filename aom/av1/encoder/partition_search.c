@@ -207,6 +207,7 @@ static void update_zeromv_cnt(const AV1_COMP *const cpi,
     }
 }
 
+// @grellert: codifica o SB (macrobloco, CTU) - wrapper?
 static void encode_superblock(const AV1_COMP *const cpi, TileDataEnc *tile_data,
                               ThreadData *td, TokenExtra **t, RUN_TYPE dry_run,
                               BLOCK_SIZE bsize, int *rate) {

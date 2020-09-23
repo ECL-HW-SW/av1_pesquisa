@@ -621,6 +621,7 @@ void av1_encode_sby_pass1(AV1_COMP *cpi, MACROBLOCK *x, BLOCK_SIZE bsize) {
                                          encode_block_pass1, &args);
 }
 
+//@grellert: codifica o SB (macrobloco, CTU)
 void av1_encode_sb(const struct AV1_COMP *cpi, MACROBLOCK *x, BLOCK_SIZE bsize,
                    RUN_TYPE dry_run) {
   assert(bsize < BLOCK_SIZES_ALL);
