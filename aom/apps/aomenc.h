@@ -13,7 +13,7 @@
 
 #include "aom/aom_codec.h"
 #include "aom/aom_encoder.h"
-
+#include <time.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,6 +23,16 @@ enum TestDecodeFatality {
   TEST_DECODE_FATAL,
   TEST_DECODE_WARN,
 };
+
+// // @grellert ECL timers
+
+// typedef struct {
+//   time_t block_timer_begin[22];
+//   time_t block_timer_end[22];
+//   double block_timer_acc[22];
+//   unsigned pass;
+// } ECLTimers;
+
 
 typedef enum {
   I420,  // 4:2:0 8+ bit-depth
@@ -54,6 +64,9 @@ struct AvxEncoderConfig {
   int experimental_bitstream;
   aom_chroma_sample_position_t csp;
   cfg_options_t encoder_config;
+  //@grellert
+  ECLTimers ecl_timers;
+
 };
 
 #ifdef __cplusplus

@@ -99,7 +99,6 @@ extern "C" {
 
 #include "aom/aom_image.h"
 #include "aom/aom_integer.h"
-
 /*!\brief Decorator indicating a function is deprecated */
 #ifndef AOM_DEPRECATED
 #if defined(__GNUC__) && __GNUC__
@@ -295,6 +294,19 @@ typedef const void *aom_codec_iter_t;
  * may reference the 'name' member to get a printable description of the
  * algorithm.
  */
+#include<time.h>
+
+// @grellert ECL timers
+typedef struct {
+  time_t block_timer_begin[22];  // são 22 tamanhos de bloco
+  time_t block_timer_end[22];
+  double block_timer_acc[22];
+  unsigned pass; // AV1 faz duas passadas
+  // TODO adicionar outras variáveis/timers
+  // time_t  me_timer_begin, ....
+} ECLTimers;
+
+
 typedef struct aom_codec_ctx {
   const char *name;             /**< Printable interface name */
   aom_codec_iface_t *iface;     /**< Interface pointers */
@@ -309,6 +321,8 @@ typedef struct aom_codec_ctx {
     const void *raw;
   } config;               /**< Configuration pointer aliasing union */
   aom_codec_priv_t *priv; /**< Algorithm private storage */
+  ECLTimers* ecl_timers;
+
 } aom_codec_ctx_t;
 
 /*!\brief Bit depth for codec

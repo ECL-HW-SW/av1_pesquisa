@@ -2543,6 +2543,7 @@ static void rectangular_partition_search(
 #endif
 
     // First sub-partition evaluation in HORZ / VERT partition type.
+    // if partition_type == 
     rd_pick_rect_partition(
         cpi, tile_data, x, cur_ctx[i][sub_part_idx][0], part_search_state,
         best_rdc, 0, mi_pos_rect[i][sub_part_idx][0],
@@ -3156,6 +3157,7 @@ static void none_partition_search(
   }
 #endif
   // PARTITION_NONE evaluation and cost update.
+  // grellert acho que aqui ele faz intra, inter etc
   pick_sb_modes(cpi, tile_data, x, mi_row, mi_col, this_rdc, PARTITION_NONE,
                 bsize, pc_tree->none, best_remain_rdcost);
   av1_rd_cost_update(x->rdmult, this_rdc);
@@ -3377,6 +3379,11 @@ bool av1_rd_pick_partition(AV1_COMP *const cpi, ThreadData *td,
                            SB_MULTI_PASS_MODE multi_pass_mode,
                            RD_RECT_PART_WIN_INFO *rect_part_win_info) {
   const AV1_COMMON *const cm = &cpi->common;
+  
+  //@grellert
+  ECLTimers *ecltimers = cpi->ecl_timers;
+  ecltimers->block_timer_begin[bsize] = clock();
+
   const int num_planes = av1_num_planes(cm);
   TileInfo *const tile_info = &tile_data->tile_info;
   MACROBLOCK *const x = &td->mb;
@@ -3461,6 +3468,10 @@ bool av1_rd_pick_partition(AV1_COMP *const cpi, ThreadData *td,
   int *prune_vert = &part_search_state.prune_rect_part[VERT];
   // Pruning: before searching any partition type, using source and simple
   // motion search results to prune out unlikely partitions.
+
+  // @grellert - TODO - adicionar flags desligando os prunes. Colocar na mesma estrutura dos timers
+  //if(ecltimers->enable_prune_b)
+  
   av1_prune_partitions_before_search(
       cpi, x, mi_row, mi_col, bsize, sms_tree,
       &part_search_state.partition_none_allowed, partition_horz_allowed,
@@ -3490,12 +3501,21 @@ BEGIN_PARTITION_SEARCH:
   none_partition_search(cpi, td, tile_data, x, pc_tree, sms_tree, &x_ctx,
                         &part_search_state, &best_rdc, &pb_source_variance,
                         none_rd, &part_none_rd);
-
+  
+  // grellert: a partir daqui já não é mais quadrado
+  
   // PARTITION_SPLIT search stage.
   int64_t part_split_rd = INT64_MAX;
+
+  ecltimers->block_timer_end[bsize] = clock();
+  ecltimers->block_timer_acc[bsize] += (ecltimers->block_timer_end[bsize] - \
+                                                      ecltimers->block_timer_begin[bsize] )/CLOCKS_PER_SEC;
+  // @grellert -- @icaro, salvar best_rdc aqui
   split_partition_search(cpi, td, tile_data, tp, x, pc_tree, sms_tree, &x_ctx,
                          &part_search_state, &best_rdc, multi_pass_mode,
                          &part_split_rd);
+  // @grellert -- @icaro, verificar se mudou aqui
+  ecltimers->block_timer_begin[bsize] = clock();
 
   // Terminate partition search for child partition,
   // when NONE and SPLIT partition rd_costs are INT64_MAX.
@@ -3582,7 +3602,10 @@ BEGIN_PARTITION_SEARCH:
                        pc_tree->vertical4, &part_search_state, &best_rdc,
                        inc_step, PARTITION_VERT_4);
   }
-
+  ecltimers->block_timer_end[bsize] = clock();
+  ecltimers->block_timer_acc[bsize] += (double)(ecltimers->block_timer_end[bsize] - \
+                                                      ecltimers->block_timer_begin[bsize] )/CLOCKS_PER_SEC;
+  // printf("%d %g\n", bsize, ecltimers->block_timer_acc[bsize]);
   if (bsize == cm->seq_params.sb_size &&
       !part_search_state.found_best_partition) {
     // Did not find a valid partition, go back and search again, with less

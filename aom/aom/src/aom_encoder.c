@@ -152,7 +152,8 @@ aom_codec_err_t aom_codec_encode(aom_codec_ctx_t *ctx, const aom_image_t *img,
      * requires it.
      */
     FLOATING_POINT_INIT
-    res = ctx->iface->enc.encode(get_alg_priv(ctx), img, pts, duration, flags);
+    // @grellert - aqui chama encode
+    res = ctx->iface->enc.encode(get_alg_priv(ctx), img, pts, duration, flags, ctx->ecl_timers);
     FLOATING_POINT_RESTORE
   }
 

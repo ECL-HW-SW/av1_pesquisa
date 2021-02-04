@@ -776,6 +776,7 @@ static AOM_INLINE void encode_sb_row(AV1_COMP *cpi, ThreadData *td,
     }
 
     // encode the superblock
+    // @grellert - codifica o Superblock (SB) 128x128
     if (use_nonrd_mode) {
       encode_nonrd_sb(cpi, td, tile_data, tp, mi_row, mi_col, seg_skip);
     } else {
@@ -888,6 +889,7 @@ void av1_encode_sb_row(AV1_COMP *cpi, ThreadData *td, int tile_row,
                 cm->seq_params.mib_size_log2 + MI_SIZE_LOG2, num_planes);
   tplist[sb_row_in_tile].start = tok;
 
+  // @grellert - codifica uma linha de superblocks
   encode_sb_row(cpi, td, this_tile, mi_row, &tok);
 
   tplist[sb_row_in_tile].count =
@@ -1533,6 +1535,8 @@ void av1_encode_frame(AV1_COMP *cpi) {
     rdc->compound_ref_used_flag = 0;
     rdc->skip_mode_used_flag = 0;
 
+
+    // @grellert - codifica quadro
     encode_frame_internal(cpi);
 
     if (current_frame->reference_mode == REFERENCE_MODE_SELECT) {

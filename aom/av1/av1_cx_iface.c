@@ -26,6 +26,7 @@
 #include "av1/encoder/encoder.h"
 #include "av1/encoder/ethread.h"
 #include "av1/encoder/firstpass.h"
+#include "apps/aomenc.h"
 
 #define MAG_SIZE (4)
 
@@ -310,6 +311,7 @@ struct aom_codec_alg_priv {
   // Number of stats buffers required for look ahead
   int num_lap_buffers;
   STATS_BUFFER_CTX stats_buf_context;
+  ECLTimers *ecl_timers;
 };
 
 static INLINE int gcd(int64_t a, int b) {
@@ -2101,10 +2103,12 @@ static aom_codec_err_t encoder_encode(aom_codec_alg_priv_t *ctx,
                                       const aom_image_t *img,
                                       aom_codec_pts_t pts,
                                       unsigned long duration,
-                                      aom_enc_frame_flags_t enc_flags) {
+                                      aom_enc_frame_flags_t enc_flags,
+                                      ECLTimers *timers) {
   const size_t kMinCompressedSize = 8192;
   volatile aom_codec_err_t res = AOM_CODEC_OK;
   AV1_COMP *const cpi = ctx->cpi;
+  cpi->ecl_timers = timers;
   const aom_rational64_t *const timestamp_ratio = &ctx->timestamp_ratio;
   volatile aom_codec_pts_t ptsvol = pts;
   // LAP context

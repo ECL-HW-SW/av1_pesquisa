@@ -70,7 +70,7 @@ struct aom_codec_alg_priv {
   void *ext_priv;  // Private data associated with the external frame buffers.
   aom_get_frame_buffer_cb_fn_t get_ext_fb_cb;
   aom_release_frame_buffer_cb_fn_t release_ext_fb_cb;
-
+  ECLTimers *ecl_timers;
 #if CONFIG_INSPECTION
   aom_inspect_cb inspect_cb;
   void *inspect_ctx;

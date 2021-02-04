@@ -2061,6 +2061,7 @@ static void encode_frame(struct stream_state *stream,
 
   aom_usec_timer_start(&timer);
   // @grellert: codifica o quadro
+  stream->encoder.ecl_timers = &global->ecl_timers;
   aom_codec_encode(&stream->encoder, img, frame_start,
                    (uint32_t)(next_frame_start - frame_start), 0);
   aom_usec_timer_mark(&timer);
@@ -2202,6 +2203,9 @@ static void show_psnr(struct stream_state *stream, double peak, int64_t bps) {
   }
   fprintf(stderr, " %7" PRId64 " ms", stream->cx_time / 1000);
   fprintf(stderr, "\n");
+
+    // printf("%d %g\n", bsize, ecltimers->block_timer_acc[bsize]);
+
 }
 
 #if CONFIG_AV1_HIGHBITDEPTH
@@ -2390,7 +2394,14 @@ int main(int argc, const char **argv_) {
     input.only_i420 = 0;
 
   // @grellert: para cada passada
+  int i;
   for (pass = global.pass ? global.pass - 1 : 0; pass < global.passes; pass++) {
+    // resetando timers pra cada passada
+    global.ecl_timers.pass = pass;
+    for(i = 0; i < 22; i++){
+      global.ecl_timers.block_timer_acc[i] = 0;
+    }
+
     int frames_in = 0, seen_frames = 0;
     int64_t estimated_time_left = -1;
     int64_t average_rate = -1;
@@ -2658,6 +2669,7 @@ int main(int argc, const char **argv_) {
     got_data = 0;
 
     //@grellert: para cada quadro
+
     while (frame_avail || got_data) {
       struct aom_usec_timer timer;
 
@@ -2840,7 +2852,12 @@ int main(int argc, const char **argv_) {
     FOREACH_STREAM(stream, streams) {
       stats_close(&stream->stats, global.passes - 1);
     }
-
+     
+    // FILE *arq_partition = fopen("time_partitions.csv")
+    printf("Partition times for pass %d:\n", global.ecl_timers.pass);
+    for(i = 0; i < 22; i++){
+      printf("%d %g\n",i, global.ecl_timers.block_timer_acc[i]);
+    }
     if (global.pass) break;
   }
 

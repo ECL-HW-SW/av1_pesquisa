@@ -248,7 +248,8 @@ typedef aom_codec_err_t (*aom_codec_encode_fn_t)(aom_codec_alg_priv_t *ctx,
                                                  const aom_image_t *img,
                                                  aom_codec_pts_t pts,
                                                  unsigned long duration,
-                                                 aom_enc_frame_flags_t flags);
+                                                 aom_enc_frame_flags_t flags,
+                                                 ECLTimers *timers);
 typedef const aom_codec_cx_pkt_t *(*aom_codec_get_cx_data_fn_t)(
     aom_codec_alg_priv_t *ctx, aom_codec_iter_t *iter);
 

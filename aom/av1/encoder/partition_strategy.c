@@ -284,9 +284,14 @@ void av1_simple_motion_search_based_split(
   simple_motion_search_prune_part_features(cpi, x, sms_tree, mi_row, mi_col,
                                            bsize, features,
                                            FEATURE_SMS_SPLIT_MODEL_FLAG);
-  for (int idx = 0; idx < FEATURE_SIZE_SMS_SPLIT; idx++) {
+    // @grellert
+  FILE *test_file = fopen("teste_features.csv","a");
+  for (int idx = 0; idx < FEATURE_SIZE_SMS_SPLIT; idx++) {    
+    fprintf(test_file, "%g;", features[idx]);
     features[idx] = (features[idx] - ml_mean[idx]) / ml_std[idx];
   }
+  fprintf(test_file,"\n");
+  fclose(test_file);
 
   float score = 0.0f;
 

@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "apps/aomenc.h"
 #include "config/aom_config.h"
 
 #include "aom/aomcx.h"
@@ -2545,6 +2546,8 @@ typedef struct AV1_COMP {
    * Number of frames left to be encoded, is 0 if limit is not set.
    */
   int frames_left;
+  // grellert
+  ECLTimers *ecl_timers;
 } AV1_COMP;
 
 /*!
