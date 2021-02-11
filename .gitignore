@@ -5,3 +5,9 @@ aom/build
 aom/build_d
 
 /aom/build_d
+
+output_VTM/
+
+pesquisa_codes/
+
+.vscodes
