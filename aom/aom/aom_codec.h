@@ -304,6 +304,7 @@ typedef struct {
   unsigned pass; // AV1 faz duas passadas
   // TODO adicionar outras variáveis/timers
   // time_t  me_timer_begin, ....
+  int disable_prune_partitions_before_search;
 } ECLTimers;
 
 

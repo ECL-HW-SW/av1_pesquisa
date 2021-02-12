@@ -3470,16 +3470,16 @@ bool av1_rd_pick_partition(AV1_COMP *const cpi, ThreadData *td,
   // motion search results to prune out unlikely partitions.
 
   // @grellert - TODO - adicionar flags desligando os prunes. Colocar na mesma estrutura dos timers
-  //if(ecltimers->enable_prune_b)
-  
-  av1_prune_partitions_before_search(
+  if(!ecltimers->disable_prune_partitions_before_search){
+    av1_prune_partitions_before_search(
       cpi, x, mi_row, mi_col, bsize, sms_tree,
       &part_search_state.partition_none_allowed, partition_horz_allowed,
       partition_vert_allowed, &part_search_state.do_rectangular_split,
       &part_search_state.do_square_split, prune_horz, prune_vert);
-
+  }
   // Pruning: eliminating partition types leading to coding block sizes outside
   // the min and max bsize limitations set from the encoder.
+  //grellert - esse aqui deixa
   av1_prune_partitions_by_max_min_bsize(
       &x->sb_enc, bsize, blk_params.has_rows && blk_params.has_cols,
       &part_search_state.partition_none_allowed, partition_horz_allowed,

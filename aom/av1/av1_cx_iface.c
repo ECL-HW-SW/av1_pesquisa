@@ -2935,6 +2935,7 @@ static const aom_codec_enc_cfg_t encoder_usage_cfg[] = {
 
       AOM_RC_ONE_PASS,  // g_pass
 
+      0, // grellert - disable prune before search flag
       19,  // g_lag_in_frames
 
       0,                // rc_dropframe_thresh
@@ -3005,6 +3006,7 @@ static const aom_codec_enc_cfg_t encoder_usage_cfg[] = {
 
       AOM_RC_ONE_PASS,  // g_pass
 
+      0, // grellert - disable prune before search
       1,  // g_lag_in_frames
 
       0,                // rc_dropframe_thresh

@@ -499,6 +499,9 @@ typedef struct aom_codec_enc_cfg {
    */
   unsigned int g_lag_in_frames;
 
+  //grellert
+  int disable_prune_partitions_before_search;
+
   /*
    * rate control settings (rc)
    */

@@ -258,6 +258,10 @@ static const arg_def_t timebase = ARG_DEF(
 static const arg_def_t global_error_resilient =
     ARG_DEF(NULL, "global-error-resilient", 1,
             "Enable global error resiliency features");
+// grellert
+static const arg_def_t disable_prune_partitions_before_search = 
+    ARG_DEF(NULL, "disable_prune_partitions_before_search", 0, "autoexplicavel");
+
 static const arg_def_t lag_in_frames =
     ARG_DEF(NULL, "lag-in-frames", 1, "Max number of frames to lag");
 static const arg_def_t large_scale_tile = ARG_DEF(
@@ -1536,7 +1540,12 @@ static int parse_stream_params(struct AvxEncoderConfig *global,
       }
     } else if (arg_match(&arg, &monochrome, argi)) {
       config->cfg.monochrome = 1;
-    } else if (arg_match(&arg, &full_still_picture_hdr, argi)) {
+    }
+    //grellert - adicionando parametro 
+    else if(arg_match(&arg, &disable_prune_partitions_before_search, argi)) {
+      global->disable_prune_partitions_before_search = 1;
+    }
+     else if (arg_match(&arg, &full_still_picture_hdr, argi)) {
       config->cfg.full_still_picture_hdr = 1;
     } else if (arg_match(&arg, &use_16bit_internal, argi)) {
       config->use_16bit_internal = CONFIG_AV1_HIGHBITDEPTH;
@@ -2398,6 +2407,7 @@ int main(int argc, const char **argv_) {
   for (pass = global.pass ? global.pass - 1 : 0; pass < global.passes; pass++) {
     // resetando timers pra cada passada
     global.ecl_timers.pass = pass;
+    global.ecl_timers.disable_prune_partitions_before_search = global.disable_prune_partitions_before_search;
     for(i = 0; i < 22; i++){
       global.ecl_timers.block_timer_acc[i] = 0;
     }
