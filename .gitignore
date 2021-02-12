@@ -1,4 +1,4 @@
-aom/build
+aom/build*
 
 /aom/build
 
@@ -10,4 +10,5 @@ output_VTM/
 
 pesquisa_codes/
 
-.vscodes
+.vscode
+
