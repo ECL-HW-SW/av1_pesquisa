@@ -258,7 +258,7 @@ static const arg_def_t timebase = ARG_DEF(
 static const arg_def_t global_error_resilient =
     ARG_DEF(NULL, "global-error-resilient", 1,
             "Enable global error resiliency features");
-// grellert
+// grellert - adicionando parametro
 static const arg_def_t disable_prune_partitions_before_search = 
     ARG_DEF(NULL, "disable_prune_partitions_before_search", 0, "autoexplicavel");
 
