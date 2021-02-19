@@ -3582,7 +3582,7 @@ BEGIN_PARTITION_SEARCH:
     part4_search_allowed[VERT4] = 0;
   } else {
     // Prune 4-way partition search.
-    // icaro
+    // @icaro
     if(!ecltimers->disable_prune_4_way_partition_search){
       prune_4_way_partition_search(cpi, x, pc_tree, &part_search_state, &best_rdc,
                                  pb_source_variance, ext_partition_allowed,

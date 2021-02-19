@@ -44,11 +44,6 @@ typedef enum {
 /* Configuration elements common to all streams. */
 struct AvxEncoderConfig {
   aom_codec_iface_t *codec;
-  //grellert
-  int disable_prune_partitions_before_search;
-  int disable_prune_partitions_after_split;
-  int disable_prune_4_way_partition_search;
-  
   int passes;
   int pass;
   unsigned int usage;
@@ -71,6 +66,10 @@ struct AvxEncoderConfig {
   cfg_options_t encoder_config;
   //@grellert
   ECLTimers ecl_timers;
+  
+  int disable_prune_partitions_before_search;
+  int disable_prune_partitions_after_split;
+  int disable_prune_4_way_partition_search;
 
 };
 

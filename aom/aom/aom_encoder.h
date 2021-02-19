@@ -485,6 +485,11 @@ typedef struct aom_codec_enc_cfg {
    */
   enum aom_enc_pass g_pass;
 
+  //grellert
+  int disable_prune_partitions_before_search;
+  int disable_prune_partitions_after_split;
+  int disable_prune_4_way_partition_search;
+
   /*!\brief Allow lagged encoding
    *
    * If set, this value allows the encoder to consume a number of input
@@ -498,9 +503,6 @@ typedef struct aom_codec_enc_cfg {
    * feature.
    */
   unsigned int g_lag_in_frames;
-
-  //grellert
-  int disable_prune_partitions_before_search;
 
   /*
    * rate control settings (rc)

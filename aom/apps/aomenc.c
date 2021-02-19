@@ -268,8 +268,6 @@ static const arg_def_t disable_prune_partitions_after_split =
 static const arg_def_t disable_prune_4_way_partition_search = 
     ARG_DEF(NULL, "disable_prune_4_way_partition_search", 0, "autoexplicavel");
 
-
-
 static const arg_def_t lag_in_frames =
     ARG_DEF(NULL, "lag-in-frames", 1, "Max number of frames to lag");
 static const arg_def_t large_scale_tile = ARG_DEF(
@@ -1539,16 +1537,8 @@ static int parse_stream_params(struct AvxEncoderConfig *global,
       validate_positive_rational(arg.name, &config->cfg.g_timebase);
     } else if (arg_match(&arg, &global_error_resilient, argi)) {
       config->cfg.g_error_resilient = arg_parse_uint(&arg);
-    } else if (arg_match(&arg, &lag_in_frames, argi)) {
-      config->cfg.g_lag_in_frames = arg_parse_uint(&arg);
-    } else if (arg_match(&arg, &large_scale_tile, argi)) {
-      config->cfg.large_scale_tile = arg_parse_uint(&arg);
-      if (config->cfg.large_scale_tile) {
-        global->codec = get_aom_encoder_by_short_name("av1");
-      }
-    } else if (arg_match(&arg, &monochrome, argi)) {
-      config->cfg.monochrome = 1;
-    }
+    } 
+    
     //grellert - adicionando parametro 
     else if(arg_match(&arg, &disable_prune_partitions_before_search, argi)) {
       global->disable_prune_partitions_before_search = 1;
@@ -1557,11 +1547,17 @@ static int parse_stream_params(struct AvxEncoderConfig *global,
     } else if(arg_match(&arg, &disable_prune_4_way_partition_search, argi)) {
       global->disable_prune_4_way_partition_search = 1;
     }
-
-
     
-    
-    else if (arg_match(&arg, &full_still_picture_hdr, argi)) {
+    else if (arg_match(&arg, &lag_in_frames, argi)) {
+      config->cfg.g_lag_in_frames = arg_parse_uint(&arg);
+    } else if (arg_match(&arg, &large_scale_tile, argi)) {
+      config->cfg.large_scale_tile = arg_parse_uint(&arg);
+      if (config->cfg.large_scale_tile) {
+        global->codec = get_aom_encoder_by_short_name("av1");
+      }
+    } else if (arg_match(&arg, &monochrome, argi)) {
+      config->cfg.monochrome = 1;
+    } else if (arg_match(&arg, &full_still_picture_hdr, argi)) {
       config->cfg.full_still_picture_hdr = 1;
     } else if (arg_match(&arg, &use_16bit_internal, argi)) {
       config->use_16bit_internal = CONFIG_AV1_HIGHBITDEPTH;
