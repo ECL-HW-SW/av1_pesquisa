@@ -46,6 +46,8 @@ struct AvxEncoderConfig {
   aom_codec_iface_t *codec;
   //grellert
   int disable_prune_partitions_before_search;
+  int disable_prune_partitions_after_split;
+  int disable_prune_4_way_partition_search;
   
   int passes;
   int pass;

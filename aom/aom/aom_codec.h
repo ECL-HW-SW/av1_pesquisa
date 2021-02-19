@@ -305,6 +305,8 @@ typedef struct {
   // TODO adicionar outras variáveis/timers
   // time_t  me_timer_begin, ....
   int disable_prune_partitions_before_search;
+  int disable_prune_partitions_after_split;
+  int disable_prune_4_way_partition_search;
 } ECLTimers;
 
 

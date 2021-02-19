@@ -294,9 +294,9 @@ void av1_simple_motion_search_based_split(
   fclose(test_file);
   */
 
-  // @icarogs
+  // @icaro
 
-  FILE *feat_based_split = fopen("based_split.csv", "a");
+  FILE *feat_based_split = fopen("./based_split.csv", "a");
 
   for (int idx = 0; idx < FEATURE_SIZE_SMS_SPLIT; idx++) {
     fprintf(feat_based_split,"%f;",features[idx]);
@@ -339,7 +339,7 @@ static int simple_motion_search_get_best_ref(
   const AV1_COMMON *const cm = &cpi->common;
   int best_ref = -1;
 
-  // @icarogs
+  // @icaro
   /*
   FILE *feat_get_best_ref = fopen("./get_best_ref.csv", "a");
 
@@ -566,7 +566,7 @@ void av1_simple_motion_search_prune_rect(
                                            bsize, features,
                                            FEATURE_SMS_PRUNE_PART_FLAG);
 
-  // @icarogs
+  // @icaro
   FILE *feat_prune_rect = fopen("./get_prune_rect.csv", "a");
 
   for (int f_idx = 0; f_idx < FEATURE_SIZE_SMS_PRUNE_PART; f_idx++) {
@@ -648,7 +648,7 @@ void av1_simple_motion_search_early_term_none(
     assert(0 && "Unexpected block size in simple_motion_term_none");
   }
 
-  // @icarogs
+  // @icaro
 
   FILE *feat_early_term_none = fopen("./early_term_none.csv", "a");
 
@@ -948,7 +948,7 @@ void av1_ml_early_term_after_split(AV1_COMP *const cpi, MACROBLOCK *const x,
   features[f_idx++] = logf(1.0f + (float)sms_tree->sms_rect_feat[5]);
   features[f_idx++] = logf(1.0f + (float)sms_tree->sms_rect_feat[7]);
 
-  // @icarogs
+  // @icaro
   FILE *feat_early_term_after_split = fopen("./get_early_term_after_split.csv", "a");
 
   for (int f_idx = 0; f_idx < FEATURES; f_idx++) {
@@ -1045,7 +1045,7 @@ void av1_ml_prune_rect_partition(const AV1_COMP *const cpi,
     }
   }
 
-  // @icarogs
+  // @icaro
   FILE *feat_prune_rect_partition = fopen("./get_prune_rect_partition.csv", "a");
 
   for (int f_idx = 0; f_idx < 9; f_idx++) {
@@ -1122,7 +1122,7 @@ void av1_ml_prune_ab_partition(
     features[feature_index++] = rd_ratio;
   }
 
-  // @icarogs
+  // @icaro
   FILE *feat_prune_ab_partition = fopen("./get_prune_ab_partition.csv", "a");
 
   for (int f_idx = 0; f_idx < 10; f_idx++) {
@@ -1275,7 +1275,7 @@ void av1_ml_prune_4_partition(
     features[feature_index++] = var_ratio;
   }
 
-  // @icarogs
+  // @icaro
   FILE *feat_prune_4_partition = fopen("./get_prune_4_partition.csv", "a");
 
   for (int f_idx = 0; f_idx < FEATURES; f_idx++) {

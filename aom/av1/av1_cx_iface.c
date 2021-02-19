@@ -2936,6 +2936,9 @@ static const aom_codec_enc_cfg_t encoder_usage_cfg[] = {
       AOM_RC_ONE_PASS,  // g_pass
 
       0, // grellert - disable prune before search flag
+      0, // disable_prune_partitions_after_split
+      0, //disable_prune_4_way_partition_search
+    
       19,  // g_lag_in_frames
 
       0,                // rc_dropframe_thresh
@@ -3007,6 +3010,10 @@ static const aom_codec_enc_cfg_t encoder_usage_cfg[] = {
       AOM_RC_ONE_PASS,  // g_pass
 
       0, // grellert - disable prune before search
+      0, //disable_prune_partitions_after_split
+      0, //disable_prune_4_way_partition_search
+
+      
       1,  // g_lag_in_frames
 
       0,                // rc_dropframe_thresh
