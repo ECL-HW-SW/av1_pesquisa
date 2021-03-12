@@ -2807,7 +2807,7 @@ int main(int argc, const char **argv_) {
           }
         }
       }
-
+      
       fflush(stdout);
       if (!global.quiet) fprintf(stderr, "\033[K");
     }
@@ -2879,11 +2879,25 @@ int main(int argc, const char **argv_) {
       stats_close(&stream->stats, global.passes - 1);
     }
      
-    // FILE *arq_partition = fopen("time_partitions.csv")
+    // Alan
+    char *blocksizes_name[] = {"BLOCK_4X4", "BLOCK_4X8", "BLOCK_8X4", "BLOCK_8X8",
+                              "BLOCK_8X16", "BLOCK_16X8", "BLOCK_16X16", "BLOCK_16X32",
+                              "BLOCK_32X16", "BLOCK_32X32", "BLOCK_32X64", "BLOCK_64X32",
+                              "BLOCK_64X64", "BLOCK_64X128", "BLOCK_128X64", "BLOCK_128X128",
+                              "BLOCK_4X16", "BLOCK_16X4", "BLOCK_8X32", "BLOCK_32X8",
+                              "BLOCK_16X64", "BLOCK_64X16"};
+
+    FILE *arq_partition = fopen("time_partitions.csv", "a");
+
     printf("Partition times for pass %d:\n", global.ecl_timers.pass);
+    fprintf(arq_partition,"Partition times for pass %d:\n", global.ecl_timers.pass);
     for(i = 0; i < 22; i++){
-      printf("%d %g\n",i, global.ecl_timers.block_timer_acc[i]);
+      printf("%dx %s %g\n", global.ecl_timers.block_counter[i], blocksizes_name[i], global.ecl_timers.block_timer_acc[i]);
+      fprintf(arq_partition,"%dx %s %g\n", global.ecl_timers.block_counter[i], blocksizes_name[i], global.ecl_timers.block_timer_acc[i]);
     }
+    fprintf(arq_partition,"\n\n");
+    fclose(arq_partition);
+
     if (global.pass) break;
   }
 

@@ -2476,7 +2476,7 @@ static void rectangular_partition_search(
     TokenExtra **tp, MACROBLOCK *x, PC_TREE *pc_tree,
     RD_SEARCH_MACROBLOCK_CONTEXT *x_ctx,
     PartitionSearchState *part_search_state, RD_STATS *best_rdc,
-    RD_RECT_PART_WIN_INFO *rect_part_win_info) {
+    RD_RECT_PART_WIN_INFO *rect_part_win_info, ECLTimers *ecltimers) {
   const AV1_COMMON *const cm = &cpi->common;
   PartitionBlkParams blk_params = part_search_state->part_blk_params;
   RD_STATS *sum_rdc = &part_search_state->sum_rdc;
@@ -2524,6 +2524,9 @@ static void rectangular_partition_search(
     PARTITION_TYPE partition_type = rect_partition_type[i];
     blk_params.subsize =
         get_partition_subsize(blk_params.bsize, partition_type);
+    //Alan - aqui pega sub-blocos retangulares
+    ecltimers->block_timer_begin[blk_params.subsize] = clock();
+    //
     assert(blk_params.subsize <= BLOCK_LARGEST);
     av1_init_rd_stats(sum_rdc);
     for (int j = 0; j < SUB_PARTITIONS_RECT; j++) {
@@ -2594,6 +2597,13 @@ static void rectangular_partition_search(
       if (rect_part_win_info != NULL)
         rect_part_win_info->rect_part_win[i] = false;
     }
+
+    //Alan - Loop sub-blocos retangulares
+    ecltimers->block_timer_end[blk_params.subsize] = clock();
+    ecltimers->block_counter[blk_params.subsize]++;
+    ecltimers->block_timer_acc[blk_params.subsize] += (double)(ecltimers->block_timer_end[blk_params.subsize] - \
+                                                        ecltimers->block_timer_begin[blk_params.subsize] )/CLOCKS_PER_SEC;
+
     av1_restore_context(x, x_ctx, blk_params.mi_row, blk_params.mi_col,
                         blk_params.bsize, av1_num_planes(cm));
   }
@@ -2679,7 +2689,7 @@ static void ab_partitions_search(
     TokenExtra **tp, MACROBLOCK *x, RD_SEARCH_MACROBLOCK_CONTEXT *x_ctx,
     PC_TREE *pc_tree, PartitionSearchState *part_search_state,
     RD_STATS *best_rdc, RD_RECT_PART_WIN_INFO *rect_part_win_info,
-    int pb_source_variance, int ext_partition_allowed) {
+    int pb_source_variance, int ext_partition_allowed, ECLTimers *ecltimers) {
   const AV1_COMMON *const cm = &cpi->common;
   PartitionBlkParams blk_params = part_search_state->part_blk_params;
   const int mi_row = blk_params.mi_row;
@@ -2757,6 +2767,9 @@ static void ab_partitions_search(
       continue;
 
     blk_params.subsize = get_partition_subsize(bsize, part_type);
+    //Alan - aqui pega sub-blocos retangulares AB
+    ecltimers->block_timer_begin[blk_params.subsize] = clock();
+
     for (int i = 0; i < SUB_PARTITIONS_AB; i++) {
       // Set AB partition context.
       cur_part_ctxs[ab_part_type][i] =
@@ -2784,6 +2797,12 @@ static void ab_partitions_search(
                     cur_part_ctxs[ab_part_type], part_search_state, best_rdc,
                     ab_subsize[ab_part_type], ab_mi_pos[ab_part_type],
                     part_type);
+
+    //Alan - Blocos AB fim
+    ecltimers->block_timer_end[blk_params.subsize] = clock();
+    ecltimers->block_counter[blk_params.subsize]++;
+    ecltimers->block_timer_acc[blk_params.subsize] += (double)(ecltimers->block_timer_end[blk_params.subsize] - \
+                                                        ecltimers->block_timer_begin[blk_params.subsize] )/CLOCKS_PER_SEC;
   }
 }
 
@@ -2830,6 +2849,11 @@ static void rd_pick_4partition(
   int mi_pos[SUB_PARTITIONS_PART4][2];
 
   blk_params.subsize = get_partition_subsize(blk_params.bsize, partition_type);
+  //Alan - Aqui sub-blocos HORZ4/VERT4
+  //ECLTimers *ecltimers = cpi->ecl_timers;
+  //ecltimers->block_timer_begin[blk_params.subsize] = clock();
+  cpi->ecl_timers->block_timer_begin[blk_params.subsize] = clock();
+
   // Set partition context and RD cost.
   set_4_part_ctx_and_rdcost(x, cm, td, cur_part_ctx, part_search_state,
                             partition_type, blk_params.bsize);
@@ -2872,6 +2896,12 @@ static void rd_pick_4partition(
     partition_timer_on = 0;
   }
 #endif
+  //Alan - Fim sub-blocos HORZ4/VERT4
+  cpi->ecl_timers->block_timer_end[blk_params.subsize] = clock();
+  cpi->ecl_timers->block_counter[blk_params.subsize]++;
+  cpi->ecl_timers->block_timer_acc[blk_params.subsize] += (double)(cpi->ecl_timers->block_timer_end[blk_params.subsize] - \
+                                                        cpi->ecl_timers->block_timer_begin[blk_params.subsize] )/CLOCKS_PER_SEC;
+
   av1_restore_context(x, x_ctx, blk_params.mi_row, blk_params.mi_col,
                       blk_params.bsize, av1_num_planes(cm));
 }
@@ -3508,7 +3538,8 @@ BEGIN_PARTITION_SEARCH:
   int64_t part_split_rd = INT64_MAX;
 
   ecltimers->block_timer_end[bsize] = clock();
-  ecltimers->block_timer_acc[bsize] += (ecltimers->block_timer_end[bsize] - \
+  ecltimers->block_counter[bsize]++;
+  ecltimers->block_timer_acc[bsize] += (double)(ecltimers->block_timer_end[bsize] - \
                                                       ecltimers->block_timer_begin[bsize] )/CLOCKS_PER_SEC;
   // @grellert -- @icaro, salvar best_rdc aqui
 
@@ -3520,6 +3551,7 @@ BEGIN_PARTITION_SEARCH:
                          &part_search_state, &best_rdc, multi_pass_mode,
                          &part_split_rd);
   // @grellert -- @icaro, verificar se mudou aqui
+
   ecltimers->block_timer_begin[bsize] = clock();
 
     if (max_rd_split < part_split_rd){
@@ -3546,7 +3578,7 @@ BEGIN_PARTITION_SEARCH:
   // Rectangular partitions search stage.
   rectangular_partition_search(cpi, td, tile_data, tp, x, pc_tree, &x_ctx,
                                &part_search_state, &best_rdc,
-                               rect_part_win_info);
+                               rect_part_win_info, ecltimers);
 
   if (pb_source_variance == UINT_MAX) {
     av1_setup_src_planes(x, cpi->source, mi_row, mi_col, num_planes, bsize);
@@ -3570,7 +3602,7 @@ BEGIN_PARTITION_SEARCH:
   // AB partitions search stage.
   ab_partitions_search(cpi, td, tile_data, tp, x, &x_ctx, pc_tree,
                        &part_search_state, &best_rdc, rect_part_win_info,
-                       pb_source_variance, ext_partition_allowed);
+                       pb_source_variance, ext_partition_allowed, ecltimers);
 
   // 4-way partitions search stage.
   int part4_search_allowed[NUM_PART4_TYPES] = { 1, 1 };
@@ -3620,6 +3652,7 @@ BEGIN_PARTITION_SEARCH:
                        inc_step, PARTITION_VERT_4);
   }
   ecltimers->block_timer_end[bsize] = clock();
+  ecltimers->block_counter[bsize]++;
   ecltimers->block_timer_acc[bsize] += (double)(ecltimers->block_timer_end[bsize] - \
                                                       ecltimers->block_timer_begin[bsize] )/CLOCKS_PER_SEC;
   // printf("%d %g\n", bsize, ecltimers->block_timer_acc[bsize]);
