@@ -294,21 +294,27 @@ typedef const void *aom_codec_iter_t;
  * may reference the 'name' member to get a printable description of the
  * algorithm.
  */
-#include<time.h>
+#include <time.h>
 
 // @grellert ECL timers
 typedef struct {
   time_t block_timer_begin[22];  // são 22 tamanhos de bloco
   time_t block_timer_end[22];
   double block_timer_acc[22];
-  unsigned pass; // AV1 faz duas passadas
+  unsigned pass;  // AV1 faz duas passadas
   // TODO adicionar outras variáveis/timers
   // time_t  me_timer_begin, ....
   int disable_prune_partitions_before_search;
   int disable_prune_partitions_after_split;
-  int disable_prune_4_way_partition_search;
-} ECLTimers;
 
+  int disable_prune_4_way_partition_search;  // erro
+
+  int disable_av1_prune_ab_partitions;
+  int disable_av1_ml_prune_4_partition;
+  int disable_prune_4_partition_using_split_info;
+  int disable_av1_ml_prune_rect_partition;
+  int disable_prune_partitions_after_none;
+} ECLTimers;
 
 typedef struct aom_codec_ctx {
   const char *name;             /**< Printable interface name */
@@ -324,7 +330,7 @@ typedef struct aom_codec_ctx {
     const void *raw;
   } config;               /**< Configuration pointer aliasing union */
   aom_codec_priv_t *priv; /**< Algorithm private storage */
-  ECLTimers* ecl_timers;
+  ECLTimers *ecl_timers;
 
 } aom_codec_ctx_t;
 

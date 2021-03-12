@@ -485,10 +485,16 @@ typedef struct aom_codec_enc_cfg {
    */
   enum aom_enc_pass g_pass;
 
-  //grellert
+  // @grellert
   int disable_prune_partitions_before_search;
   int disable_prune_partitions_after_split;
   int disable_prune_4_way_partition_search;
+
+  int disable_av1_prune_ab_partitions;
+  int disable_av1_ml_prune_4_partition;
+  int disable_prune_4_partition_using_split_info;
+  int disable_av1_ml_prune_rect_partition;
+  int disable_prune_partitions_after_none;
 
   /*!\brief Allow lagged encoding
    *

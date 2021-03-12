@@ -286,7 +286,7 @@ void av1_simple_motion_search_based_split(
                                            FEATURE_SMS_SPLIT_MODEL_FLAG);
   /* @grellert
   FILE *test_file = fopen("teste_features.csv","a");
-  for (int idx = 0; idx < FEATURE_SIZE_SMS_SPLIT; idx++) {    
+  for (int idx = 0; idx < FEATURE_SIZE_SMS_SPLIT; idx++) {
     fprintf(test_file, "%g;", features[idx]);
     features[idx] = (features[idx] - ml_mean[idx]) / ml_std[idx];
   }
@@ -295,15 +295,14 @@ void av1_simple_motion_search_based_split(
   */
 
   // @icaro
-
   FILE *feat_based_split = fopen("./based_split.csv", "a");
 
   for (int idx = 0; idx < FEATURE_SIZE_SMS_SPLIT; idx++) {
-    fprintf(feat_based_split,"%f;",features[idx]);
+    fprintf(feat_based_split, "%f;", features[idx]);
     features[idx] = (features[idx] - ml_mean[idx]) / ml_std[idx];
   }
 
-  fprintf(feat_based_split,"\n");
+  fprintf(feat_based_split, "\n");
 
   fclose(feat_based_split);
 
@@ -338,20 +337,6 @@ static int simple_motion_search_get_best_ref(
     unsigned int *best_var) {
   const AV1_COMMON *const cm = &cpi->common;
   int best_ref = -1;
-
-  // @icaro
-  /*
-  FILE *feat_get_best_ref = fopen("./get_best_ref.csv", "a");
-
-  for (int idx = 0; idx < FEATURE_SIZE_SMS_SPLIT; idx++) {
-    fprintf(feat_get_best_ref,"%f;",features[idx]);
-    features[idx] = (features[idx] - ml_mean[idx]) / ml_std[idx];
-  }
-
-  fprintf(feat_get_best_ref,"\n");
-
-  fclose(feat_get_best_ref);
-  */
 
   if (mi_col >= cm->mi_params.mi_cols || mi_row >= cm->mi_params.mi_rows) {
     // If the whole block is outside of the image, set the var and sse to 0.
@@ -570,11 +555,11 @@ void av1_simple_motion_search_prune_rect(
   FILE *feat_prune_rect = fopen("./get_prune_rect.csv", "a");
 
   for (int f_idx = 0; f_idx < FEATURE_SIZE_SMS_PRUNE_PART; f_idx++) {
-     fprintf(feat_prune_rect,"%f;",features[f_idx]);
+    fprintf(feat_prune_rect, "%f;", features[f_idx]);
     features[f_idx] = (features[f_idx] - ml_mean[f_idx]) / ml_std[f_idx];
   }
 
-  fprintf(feat_prune_rect,"\n");
+  fprintf(feat_prune_rect, "\n");
 
   fclose(feat_prune_rect);
 
@@ -649,18 +634,18 @@ void av1_simple_motion_search_early_term_none(
   }
 
   // @icaro
-
   FILE *feat_early_term_none = fopen("./early_term_none.csv", "a");
 
   if (ml_model) {
     float score = 0.0f;
     for (f_idx = 0; f_idx < FEATURE_SIZE_SMS_TERM_NONE; f_idx++) {
-      fprintf(feat_early_term_none,"%f;",features[f_idx]);
-      score += ml_model[f_idx] * (features[f_idx] - ml_mean[f_idx]) / ml_std[f_idx];
+      fprintf(feat_early_term_none, "%f;", features[f_idx]);
+      score +=
+          ml_model[f_idx] * (features[f_idx] - ml_mean[f_idx]) / ml_std[f_idx];
     }
     score += ml_model[FEATURE_SIZE_SMS_TERM_NONE];
-  
-    fprintf(feat_early_term_none,"\n");
+
+    fprintf(feat_early_term_none, "\n");
 
     fclose(feat_early_term_none);
 
@@ -949,13 +934,14 @@ void av1_ml_early_term_after_split(AV1_COMP *const cpi, MACROBLOCK *const x,
   features[f_idx++] = logf(1.0f + (float)sms_tree->sms_rect_feat[7]);
 
   // @icaro
-  FILE *feat_early_term_after_split = fopen("./get_early_term_after_split.csv", "a");
+  FILE *feat_early_term_after_split =
+      fopen("./get_early_term_after_split.csv", "a");
 
   for (int f_idx = 0; f_idx < FEATURES; f_idx++) {
-     fprintf(feat_early_term_after_split,"%f;",features[f_idx]);
+    fprintf(feat_early_term_after_split, "%f;", features[f_idx]);
   }
 
-  fprintf(feat_early_term_after_split,"\n");
+  fprintf(feat_early_term_after_split, "\n");
 
   fclose(feat_early_term_after_split);
 
@@ -1046,13 +1032,14 @@ void av1_ml_prune_rect_partition(const AV1_COMP *const cpi,
   }
 
   // @icaro
-  FILE *feat_prune_rect_partition = fopen("./get_prune_rect_partition.csv", "a");
+  FILE *feat_prune_rect_partition =
+      fopen("./get_prune_rect_partition.csv", "a");
 
   for (int f_idx = 0; f_idx < 9; f_idx++) {
-     fprintf(feat_prune_rect_partition,"%f;",features[f_idx]);
+    fprintf(feat_prune_rect_partition, "%f;", features[f_idx]);
   }
 
-  fprintf(feat_prune_rect_partition,"\n");
+  fprintf(feat_prune_rect_partition, "\n");
 
   fclose(feat_prune_rect_partition);
 
@@ -1126,10 +1113,10 @@ void av1_ml_prune_ab_partition(
   FILE *feat_prune_ab_partition = fopen("./get_prune_ab_partition.csv", "a");
 
   for (int f_idx = 0; f_idx < 10; f_idx++) {
-     fprintf(feat_prune_ab_partition,"%f;",features[f_idx]);
+    fprintf(feat_prune_ab_partition, "%f;", features[f_idx]);
   }
 
-  fprintf(feat_prune_ab_partition,"\n");
+  fprintf(feat_prune_ab_partition, "\n");
 
   fclose(feat_prune_ab_partition);
 
@@ -1279,10 +1266,10 @@ void av1_ml_prune_4_partition(
   FILE *feat_prune_4_partition = fopen("./get_prune_4_partition.csv", "a");
 
   for (int f_idx = 0; f_idx < FEATURES; f_idx++) {
-     fprintf(feat_prune_4_partition,"%f;",features[f_idx]);
+    fprintf(feat_prune_4_partition, "%f;", features[f_idx]);
   }
 
-  fprintf(feat_prune_4_partition,"\n");
+  fprintf(feat_prune_4_partition, "\n");
 
   fclose(feat_prune_4_partition);
 
@@ -1519,11 +1506,10 @@ int evaluate_ab_partition_based_on_split(
   // Threshold for number of winners
   // Conservative pruning for high quantizers
   const int num_win_thresh = AOMMIN(3 * (2 * (MAXQ - qindex) / MAXQ), 3);
-  int sub_part_win = (rect_part_win_info == NULL)
-                         ? (pc_tree->partitioning == rect_part)
-                         : (rect_part == PARTITION_HORZ)
-                               ? rect_part_win_info->rect_part_win[HORZ]
-                               : rect_part_win_info->rect_part_win[VERT];
+  int sub_part_win =
+      (rect_part_win_info == NULL)    ? (pc_tree->partitioning == rect_part)
+      : (rect_part == PARTITION_HORZ) ? rect_part_win_info->rect_part_win[HORZ]
+                                      : rect_part_win_info->rect_part_win[VERT];
   num_win += (sub_part_win) ? 1 : 0;
   if (pc_tree->split[split_idx1]) {
     num_win +=

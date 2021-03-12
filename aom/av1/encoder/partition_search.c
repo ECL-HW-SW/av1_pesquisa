@@ -2543,7 +2543,7 @@ static void rectangular_partition_search(
 #endif
 
     // First sub-partition evaluation in HORZ / VERT partition type.
-    // if partition_type == 
+    // if partition_type ==
     rd_pick_rect_partition(
         cpi, tile_data, x, cur_ctx[i][sub_part_idx][0], part_search_state,
         best_rdc, 0, mi_pos_rect[i][sub_part_idx][0],
@@ -2688,14 +2688,20 @@ static void ab_partitions_search(
 
   int ab_partitions_allowed[NUM_AB_PARTS] = { 1, 1, 1, 1 };
   // Prune AB partitions
-  av1_prune_ab_partitions(
-      cpi, x, pc_tree, bsize, pb_source_variance, best_rdc->rdcost,
-      part_search_state->rect_part_rd, part_search_state->split_rd,
-      rect_part_win_info, ext_partition_allowed,
-      part_search_state->partition_rect_allowed[HORZ],
-      part_search_state->partition_rect_allowed[VERT],
-      &ab_partitions_allowed[HORZ_A], &ab_partitions_allowed[HORZ_B],
-      &ab_partitions_allowed[VERT_A], &ab_partitions_allowed[VERT_B]);
+
+  // @icaro
+  ECLTimers *ecltimers = cpi->ecl_timers;
+
+  if (!ecltimers->disable_av1_prune_ab_partitions) {
+    av1_prune_ab_partitions(
+        cpi, x, pc_tree, bsize, pb_source_variance, best_rdc->rdcost,
+        part_search_state->rect_part_rd, part_search_state->split_rd,
+        rect_part_win_info, ext_partition_allowed,
+        part_search_state->partition_rect_allowed[HORZ],
+        part_search_state->partition_rect_allowed[VERT],
+        &ab_partitions_allowed[HORZ_A], &ab_partitions_allowed[HORZ_B],
+        &ab_partitions_allowed[VERT_A], &ab_partitions_allowed[VERT_B]);
+  }
 
   // Flags to indicate whether the mode search is done.
   const int is_ctx_ready[NUM_AB_PARTS][2] = {
@@ -2947,22 +2953,29 @@ static void prune_4_way_partition_search(
                                     pc_tree->partitioning == PARTITION_NONE);
   }
 
+  // @icaro
+  ECLTimers *ecltimers = cpi->ecl_timers;
+
   // Pruning: pruning out some 4-way partitions using a DNN taking rd costs of
   // sub-blocks from basic partition types.
   if (cpi->sf.part_sf.ml_prune_4_partition && partition4_allowed &&
       part_search_state->partition_rect_allowed[HORZ] &&
       part_search_state->partition_rect_allowed[VERT]) {
-    av1_ml_prune_4_partition(
-        cpi, x, bsize, pc_tree->partitioning, best_rdc->rdcost,
-        part_search_state->rect_part_rd, part_search_state->split_rd,
-        &part4_search_allowed[HORZ4], &part4_search_allowed[VERT4],
-        pb_source_variance, mi_row, mi_col);
+    if (!ecltimers->disable_av1_ml_prune_4_partition) {
+      av1_ml_prune_4_partition(
+          cpi, x, bsize, pc_tree->partitioning, best_rdc->rdcost,
+          part_search_state->rect_part_rd, part_search_state->split_rd,
+          &part4_search_allowed[HORZ4], &part4_search_allowed[VERT4],
+          pb_source_variance, mi_row, mi_col);
+    }
   }
 
   // Pruning: pruning out 4-way partitions based on the number of horz/vert wins
   // in the current block and sub-blocks in PARTITION_SPLIT.
-  prune_4_partition_using_split_info(cpi, x, part_search_state,
-                                     part4_search_allowed);
+  if (!ecltimers->disable_prune_4_partition_using_split_info) {
+    prune_4_partition_using_split_info(cpi, x, part_search_state,
+                                       part4_search_allowed);
+  }
 }
 
 // Set PARTITION_NONE allowed flag.
@@ -3103,6 +3116,8 @@ static void prune_partitions_after_split(
         part_search_state->split_rd, mi_row, mi_col,
         &part_search_state->terminate_partition_search);
   }
+  // @icaro
+  ECLTimers *ecltimers = cpi->ecl_timers;
 
   // Use the rd costs of PARTITION_NONE and subblocks from PARTITION_SPLIT
   // to prune out rectangular partitions in some directions.
@@ -3115,10 +3130,13 @@ static void prune_partitions_after_split(
       !part_search_state->terminate_partition_search) {
     av1_setup_src_planes(x, cpi->source, mi_row, mi_col, av1_num_planes(cm),
                          bsize);
-    av1_ml_prune_rect_partition(
-        cpi, x, bsize, best_rdc->rdcost, part_search_state->none_rd,
-        part_search_state->split_rd, &part_search_state->prune_rect_part[HORZ],
-        &part_search_state->prune_rect_part[VERT]);
+    if (!ecltimers->disable_av1_ml_prune_rect_partition) {
+      av1_ml_prune_rect_partition(cpi, x, bsize, best_rdc->rdcost,
+                                  part_search_state->none_rd,
+                                  part_search_state->split_rd,
+                                  &part_search_state->prune_rect_part[HORZ],
+                                  &part_search_state->prune_rect_part[VERT]);
+    }
   }
 }
 
@@ -3197,9 +3215,13 @@ static void none_partition_search(
 
       // Disable split and rectangular partition search
       // based on PARTITION_NONE cost.
-      prune_partitions_after_none(cpi, x, sms_tree, pc_tree->none,
-                                  part_search_state, best_rdc,
-                                  pb_source_variance);
+      // @icaro
+      ECLTimers *ecltimers = cpi->ecl_timers;
+      if (!ecltimers->disable_prune_partitions_after_none) {
+        prune_partitions_after_none(cpi, x, sms_tree, pc_tree->none,
+                                    part_search_state, best_rdc,
+                                    pb_source_variance);
+      }
     }
   }
   av1_restore_context(x, x_ctx, mi_row, mi_col, bsize, av1_num_planes(cm));
@@ -3379,7 +3401,7 @@ bool av1_rd_pick_partition(AV1_COMP *const cpi, ThreadData *td,
                            SB_MULTI_PASS_MODE multi_pass_mode,
                            RD_RECT_PART_WIN_INFO *rect_part_win_info) {
   const AV1_COMMON *const cm = &cpi->common;
-  
+
   //@grellert
   ECLTimers *ecltimers = cpi->ecl_timers;
   ecltimers->block_timer_begin[bsize] = clock();
@@ -3466,20 +3488,21 @@ bool av1_rd_pick_partition(AV1_COMP *const cpi, ThreadData *td,
   int *partition_vert_allowed = &part_search_state.partition_rect_allowed[VERT];
   int *prune_horz = &part_search_state.prune_rect_part[HORZ];
   int *prune_vert = &part_search_state.prune_rect_part[VERT];
-  
+
   // Pruning: before searching any partition type, using source and simple
   // motion search results to prune out unlikely partitions.
-  // @grellert - TODO - adicionar flags desligando os prunes. Colocar na mesma estrutura dos timers
-  if(!ecltimers->disable_prune_partitions_before_search){
+  // @grellert - TODO - adicionar flags desligando os prunes. Colocar na mesma
+  // estrutura dos timers
+  if (!ecltimers->disable_prune_partitions_before_search) {
     av1_prune_partitions_before_search(
-      cpi, x, mi_row, mi_col, bsize, sms_tree,
-      &part_search_state.partition_none_allowed, partition_horz_allowed,
-      partition_vert_allowed, &part_search_state.do_rectangular_split,
-      &part_search_state.do_square_split, prune_horz, prune_vert);
+        cpi, x, mi_row, mi_col, bsize, sms_tree,
+        &part_search_state.partition_none_allowed, partition_horz_allowed,
+        partition_vert_allowed, &part_search_state.do_rectangular_split,
+        &part_search_state.do_square_split, prune_horz, prune_vert);
   }
   // Pruning: eliminating partition types leading to coding block sizes outside
   // the min and max bsize limitations set from the encoder.
-  //grellert - esse aqui deixa
+  // grellert - esse aqui deixa
   av1_prune_partitions_by_max_min_bsize(
       &x->sb_enc, bsize, blk_params.has_rows && blk_params.has_cols,
       &part_search_state.partition_none_allowed, partition_horz_allowed,
@@ -3501,32 +3524,35 @@ BEGIN_PARTITION_SEARCH:
   none_partition_search(cpi, td, tile_data, x, pc_tree, sms_tree, &x_ctx,
                         &part_search_state, &best_rdc, &pb_source_variance,
                         none_rd, &part_none_rd);
-  
+
   // grellert: a partir daqui já não é mais quadrado
-  
+
   // PARTITION_SPLIT search stage.
   int64_t part_split_rd = INT64_MAX;
 
   ecltimers->block_timer_end[bsize] = clock();
-  ecltimers->block_timer_acc[bsize] += (ecltimers->block_timer_end[bsize] - \
-                                                      ecltimers->block_timer_begin[bsize] )/CLOCKS_PER_SEC;
+  ecltimers->block_timer_acc[bsize] += (ecltimers->block_timer_end[bsize] -
+                                        ecltimers->block_timer_begin[bsize]) /
+                                       CLOCKS_PER_SEC;
   // @grellert -- @icaro, salvar best_rdc aqui
 
-  FILE *rd_out = fopen("best_rd.csv", "a");
-
-  int64_t max_rd_split = part_split_rd;
+  int64_t max_rd = best_rdc.rdcost;
 
   split_partition_search(cpi, td, tile_data, tp, x, pc_tree, sms_tree, &x_ctx,
                          &part_search_state, &best_rdc, multi_pass_mode,
                          &part_split_rd);
   // @grellert -- @icaro, verificar se mudou aqui
-  ecltimers->block_timer_begin[bsize] = clock();
 
-    if (max_rd_split < part_split_rd){
-      fprintf(rd_out,"%ld;",part_split_rd);
-    }
-    fprintf(rd_out,"\n");
-    fclose(rd_out);
+  FILE *feat_based_split = fopen("./based_split.csv", "a");
+  if (max_rd != best_rdc.rdcost) {
+    fprintf(feat_based_split, "1;\n");
+  } else {
+    fprintf(feat_based_split, "0;\n");
+  }
+
+  fclose(feat_based_split);
+
+  ecltimers->block_timer_begin[bsize] = clock();
 
   // Terminate partition search for child partition,
   // when NONE and SPLIT partition rd_costs are INT64_MAX.
@@ -3538,9 +3564,9 @@ BEGIN_PARTITION_SEARCH:
 
   // Prune partitions based on PARTITION_NONE and PARTITION_SPLIT.
   // @icaro
-  if(!ecltimers->disable_prune_partitions_after_split){
-    prune_partitions_after_split(cpi, x, sms_tree, &part_search_state, &best_rdc,
-                               part_none_rd, part_split_rd);
+  if (!ecltimers->disable_prune_partitions_after_split) {
+    prune_partitions_after_split(cpi, x, sms_tree, &part_search_state,
+                                 &best_rdc, part_none_rd, part_split_rd);
   }
 
   // Rectangular partitions search stage.
@@ -3583,10 +3609,10 @@ BEGIN_PARTITION_SEARCH:
   } else {
     // Prune 4-way partition search.
     // @icaro
-    if(!ecltimers->disable_prune_4_way_partition_search){
-      prune_4_way_partition_search(cpi, x, pc_tree, &part_search_state, &best_rdc,
-                                 pb_source_variance, ext_partition_allowed,
-                                 part4_search_allowed);
+    if (!ecltimers->disable_prune_4_way_partition_search) {
+      prune_4_way_partition_search(cpi, x, pc_tree, &part_search_state,
+                                   &best_rdc, pb_source_variance,
+                                   ext_partition_allowed, part4_search_allowed);
     }
   }
 
@@ -3620,8 +3646,10 @@ BEGIN_PARTITION_SEARCH:
                        inc_step, PARTITION_VERT_4);
   }
   ecltimers->block_timer_end[bsize] = clock();
-  ecltimers->block_timer_acc[bsize] += (double)(ecltimers->block_timer_end[bsize] - \
-                                                      ecltimers->block_timer_begin[bsize] )/CLOCKS_PER_SEC;
+  ecltimers->block_timer_acc[bsize] +=
+      (double)(ecltimers->block_timer_end[bsize] -
+               ecltimers->block_timer_begin[bsize]) /
+      CLOCKS_PER_SEC;
   // printf("%d %g\n", bsize, ecltimers->block_timer_acc[bsize]);
   if (bsize == cm->seq_params.sb_size &&
       !part_search_state.found_best_partition) {
