@@ -2410,6 +2410,8 @@ int main(int argc, const char **argv_) {
     usage_exit();
   }
 
+  global.ecl_timers.global_timer = clock();
+
   /* Decide if other chroma subsamplings than 4:2:0 are supported */
   if (get_fourcc_by_aom_encoder(global.codec) == AV1_FOURCC)
     input.only_i420 = 0;
@@ -2914,6 +2916,11 @@ int main(int argc, const char **argv_) {
     }
   }
   FOREACH_STREAM(stream, streams) { destroy_rate_histogram(stream->rate_hist); }
+
+  FILE *arq_partition = fopen("time_partitions.csv", "a");
+  printf("Global time %.17g:\n", (double)(((time_t)clock()) - global.ecl_timers.global_timer));
+  fprintf(arq_partition, "Global time %.17g:\n", (double)(((time_t)clock()) - global.ecl_timers.global_timer));
+  fclose(arq_partition);
 
 #if CONFIG_INTERNAL_STATS
   /* TODO(jkoleszar): This doesn't belong in this executable. Do it for now,
