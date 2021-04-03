@@ -258,15 +258,30 @@ static const arg_def_t timebase = ARG_DEF(
 static const arg_def_t global_error_resilient =
     ARG_DEF(NULL, "global-error-resilient", 1,
             "Enable global error resiliency features");
-// grellert - adicionando parametro
-static const arg_def_t disable_prune_partitions_before_search = 
-    ARG_DEF(NULL, "disable_prune_partitions_before_search", 0, "autoexplicavel");
+// @grellert - adicionando parametro
+static const arg_def_t disable_prune_partitions_before_search = ARG_DEF(
+    NULL, "disable_prune_partitions_before_search", 0, "autoexplicavel");
 
-static const arg_def_t disable_prune_partitions_after_split = 
+static const arg_def_t disable_prune_partitions_after_split =
     ARG_DEF(NULL, "disable_prune_partitions_after_split", 0, "autoexplicavel");
 
-static const arg_def_t disable_prune_4_way_partition_search = 
+static const arg_def_t disable_prune_4_way_partition_search =
     ARG_DEF(NULL, "disable_prune_4_way_partition_search", 0, "autoexplicavel");
+
+static const arg_def_t disable_av1_prune_ab_partitions =
+    ARG_DEF(NULL, "disable_av1_prune_ab_partitions", 0, "autoexplicavel");
+
+static const arg_def_t disable_av1_ml_prune_4_partition =
+    ARG_DEF(NULL, "disable_av1_ml_prune_4_partition", 0, "autoexplicavel");
+
+static const arg_def_t disable_prune_4_partition_using_split_info = ARG_DEF(
+    NULL, "disable_prune_4_partition_using_split_info", 0, "autoexplicavel");
+
+static const arg_def_t disable_av1_ml_prune_rect_partition =
+    ARG_DEF(NULL, "disable_av1_ml_prune_rect_partition", 0, "autoexplicavel");
+
+static const arg_def_t disable_prune_partitions_after_none =
+    ARG_DEF(NULL, "disable_prune_partitions_after_none", 0, "autoexplicavel");
 
 static const arg_def_t lag_in_frames =
     ARG_DEF(NULL, "lag-in-frames", 1, "Max number of frames to lag");
@@ -1537,17 +1552,28 @@ static int parse_stream_params(struct AvxEncoderConfig *global,
       validate_positive_rational(arg.name, &config->cfg.g_timebase);
     } else if (arg_match(&arg, &global_error_resilient, argi)) {
       config->cfg.g_error_resilient = arg_parse_uint(&arg);
-    } 
-    
-    //grellert - adicionando parametro 
-    else if(arg_match(&arg, &disable_prune_partitions_before_search, argi)) {
-      global->disable_prune_partitions_before_search = 1;
-    } else if(arg_match(&arg, &disable_prune_partitions_after_split, argi)) {
-      global->disable_prune_partitions_after_split = 1;
-    } else if(arg_match(&arg, &disable_prune_4_way_partition_search, argi)) {
-      global->disable_prune_4_way_partition_search = 1;
     }
-    
+
+    // grellert - adicionando parametro
+    else if (arg_match(&arg, &disable_prune_partitions_before_search, argi)) {
+      global->disable_prune_partitions_before_search = 1;
+    } else if (arg_match(&arg, &disable_prune_partitions_after_split, argi)) {
+      global->disable_prune_partitions_after_split = 1;
+    } else if (arg_match(&arg, &disable_prune_4_way_partition_search, argi)) {
+      global->disable_prune_4_way_partition_search = 1;
+    } else if (arg_match(&arg, &disable_av1_prune_ab_partitions, argi)) {
+      global->disable_av1_prune_ab_partitions = 1;
+    } else if (arg_match(&arg, &disable_av1_ml_prune_4_partition, argi)) {
+      global->disable_av1_ml_prune_4_partition = 1;
+    } else if (arg_match(&arg, &disable_prune_4_partition_using_split_info,
+                         argi)) {
+      global->disable_prune_4_partition_using_split_info = 1;
+    } else if (arg_match(&arg, &disable_av1_ml_prune_rect_partition, argi)) {
+      global->disable_av1_ml_prune_rect_partition = 1;
+    } else if (arg_match(&arg, &disable_prune_partitions_after_none, argi)) {
+      global->disable_prune_partitions_after_none = 1;
+    }
+
     else if (arg_match(&arg, &lag_in_frames, argi)) {
       config->cfg.g_lag_in_frames = arg_parse_uint(&arg);
     } else if (arg_match(&arg, &large_scale_tile, argi)) {
@@ -2225,8 +2251,7 @@ static void show_psnr(struct stream_state *stream, double peak, int64_t bps) {
   fprintf(stderr, " %7" PRId64 " ms", stream->cx_time / 1000);
   fprintf(stderr, "\n");
 
-    // printf("%d %g\n", bsize, ecltimers->block_timer_acc[bsize]);
-
+  // printf("%d %g\n", bsize, ecltimers->block_timer_acc[bsize]);
 }
 
 #if CONFIG_AV1_HIGHBITDEPTH
@@ -2365,6 +2390,82 @@ int main(int argc, const char **argv_) {
   argv = argv_dup(argc - 1, argv_ + 1);
   parse_global_config(&global, &argv);
 
+  //@icaro
+  FILE *feat_based_split = fopen("../output_files/based_split.csv", "w");
+  FILE *feat_prune_rect = fopen("../output_files/get_prune_rect.csv", "w");
+  FILE *feat_early_term_none = fopen("../output_files/early_term_none.csv", "w");
+  FILE *feat_early_term_after_split =
+      fopen("../output_files/get_early_term_after_split.csv", "w");
+  FILE *feat_prune_rect_partition =
+      fopen("../output_files/get_prune_rect_partition.csv", "w");
+  FILE *feat_prune_ab_partition = fopen("../output_files/get_prune_ab_partition.csv", "w");
+  FILE *feat_prune_4_partition = fopen("../output_files/get_prune_4_partition.csv", "w");
+
+  fprintf(feat_based_split,
+          "(nosplit) ;(nosplit) ;(split1) ;(split1) ;(split2) ;(split2) "
+          ";(split3) ;(split3) ;(split4) ;(split4) ;(dc_q * dc_q) / 256.0f "
+          ";has_above ;mi_size_wide_log2(above) ;mi_size_high_log2(above) "
+          ";has_left ;mi_size_wide_log2(left) ;mi_size_high_log2(left);frame_num;mi_row;mi_col"
+          ";bsize "
+          ";particionado \n");
+  fclose(feat_based_split);
+
+  //TODO: mudar para os demais @icaro
+  fprintf(
+      feat_prune_rect,
+      "(nosplit) ;(nosplit) ;(split1) ;(split1) ;(split2) ;(split2) ;(split3) "
+      ";(split3) ;(split4) ;(split4) ;(rect1) ;(rect2) ;(rect3) ;(rect4) "
+      ";(rect5) ;(rect6) ;(rect7) ;(rect8) ;(dc_q * dc_q) / 256.0f ;has_above "
+      ";mi_size_wide_log2(above) ;mi_size_high_log2(above) ;has_left "
+      ";mi_size_wide_log2(left) ;mi_size_high_log2(left) ;bsize ;particionado "
+      "\n");
+  fclose(feat_prune_rect);
+
+  fprintf(
+      feat_early_term_none,
+      "(nosplit) ;(nosplit) ;(split1) ;(split1) ;(split2) ;(split2) "
+      ";(split3) ;(split3) ;(split4) ;(split4) ;(rect1) ;(rect2) ;(rect3) "
+      ";(rect4) ;(rect5) ;(rect6) ;(rect7) ;(rect8) ;(dc_q * dc_q) / "
+      "256.0f ;has_above ;mi_size_wide_log2(above) "
+      ";mi_size_high_log2(above) ;has_left ;mi_size_wide_log2(left) "
+      ";mi_size_high_log2(left) ;rate; dist; rdcost ;bsize ;particionado \n");
+  fclose(feat_early_term_none);
+
+  fprintf(feat_early_term_after_split,
+          "(dc_q / 4.0f) ;(best_rd / bs / bs / 1024.0f) ;rd_valid(none) "
+          ";rd_ratio(rd / best_rd)(none) ;rd_valid(split) ;rd_ratio(rd / "
+          "best_rd)(split) ;rd_valid(sub1) ;rd_ratio(rd / best_rd)(sub1) "
+          ";min_bw(sub1) ;min_bh(sub1) ;rd_valid(sub2) ;rd_ratio(rd / "
+          "best_rd)(sub2) ;min_bw(sub2) ;min_bh(sub2) ;rd_valid(sub3) "
+          ";rd_ratio(rd / best_rd)(sub3) ;min_bw(sub3) ;min_bh(sub3) "
+          ";rd_valid(sub4) ;rd_ratio(rd / best_rd)(sub4) ;min_bw(sub4) "
+          ";min_bh(sub4) ;(nosplit) ;(split1none) ;(split2none) ;(split3none) "
+          ";(split4none) ;(rect1) ;(rect2) ;(rect3) ;(rect4) ;bsize "
+          ";particionado \n");
+  fclose(feat_early_term_after_split);
+
+  fprintf(feat_prune_rect_partition,
+          "none_rd / best_rd ;split1_rd / best_rd ;split2_rd / best_rd "
+          ";split3_rd / best_rd ;split4_rd / best_rd ;\n");
+  fclose(feat_prune_rect_partition);
+
+  fprintf(feat_prune_ab_partition,
+          "part_ctx ;var_ctx ;rd_ratio(sub1) ;rd_ratio(sub2) ;rd_ratio(sub3) "
+          ";rd_ratio(sub4) ;rd_ratio(sub5) ;rd_ratio(sub6) ;rd_ratio(sub7) "
+          ";rd_ratio(sub8) ;bsize "
+          ";particionado \n");
+  fclose(feat_prune_ab_partition);
+
+  fprintf(feat_prune_4_partition,
+          "part_ctx ;pb_source_variance(get_unsigned_bits) ;rd_ratio(sub1) "
+          ";rd_ratio(sub2) ;rd_ratio(sub3) "
+          ";rd_ratio(sub4) ;rd_ratio(sub5) ;rd_ratio(sub6) ;rd_ratio(sub7) "
+          ";rd_ratio(sub8) ;var_ratio(horz4)(sub1) ;var_ratio(horz4)(sub2) "
+          ";var_ratio(horz4)(sub3) ;var_ratio(horz4)(sub4) "
+          ";var_ratio(vert4)(sub1) ;var_ratio(vert4)(sub2) "
+          ";var_ratio(vert4)(sub3) ;var_ratio(vert4)(sub4) ;\n");
+  fclose(feat_prune_4_partition);
+
   if (argc < 2) usage_exit();
 
   switch (global.color_type) {
@@ -2419,12 +2520,26 @@ int main(int argc, const char **argv_) {
   for (pass = global.pass ? global.pass - 1 : 0; pass < global.passes; pass++) {
     // resetando timers pra cada passada
     global.ecl_timers.pass = pass;
-    global.ecl_timers.disable_prune_partitions_before_search = global.disable_prune_partitions_before_search;
-    global.ecl_timers.disable_prune_partitions_after_split = global.disable_prune_partitions_after_split;
-    global.ecl_timers.disable_prune_4_way_partition_search = global.disable_prune_4_way_partition_search;
 
+    global.ecl_timers.disable_prune_partitions_before_search =
+        global.disable_prune_partitions_before_search;
+    global.ecl_timers.disable_prune_partitions_after_split =
+        global.disable_prune_partitions_after_split;
+    global.ecl_timers.disable_prune_4_way_partition_search =
+        global.disable_prune_4_way_partition_search;
 
-    for(i = 0; i < 22; i++){
+    global.ecl_timers.disable_av1_prune_ab_partitions =
+        global.disable_av1_prune_ab_partitions;
+    global.ecl_timers.disable_av1_ml_prune_4_partition =
+        global.disable_av1_ml_prune_4_partition;
+    global.ecl_timers.disable_prune_4_partition_using_split_info =
+        global.disable_prune_4_partition_using_split_info;
+    global.ecl_timers.disable_av1_ml_prune_rect_partition =
+        global.disable_av1_ml_prune_rect_partition;
+    global.ecl_timers.disable_prune_partitions_after_none =
+        global.disable_prune_partitions_after_none;
+
+    for (i = 0; i < 22; i++) {
       global.ecl_timers.block_timer_acc[i] = 0;
     }
 
@@ -2700,7 +2815,6 @@ int main(int argc, const char **argv_) {
       struct aom_usec_timer timer;
 
       if (!global.limit || frames_in < global.limit) {
-        
         //@grellert: lê um quadro
         frame_avail = read_frame(&input, &raw);
 
@@ -2878,11 +2992,11 @@ int main(int argc, const char **argv_) {
     FOREACH_STREAM(stream, streams) {
       stats_close(&stream->stats, global.passes - 1);
     }
-     
+
     // FILE *arq_partition = fopen("time_partitions.csv")
     printf("Partition times for pass %d:\n", global.ecl_timers.pass);
-    for(i = 0; i < 22; i++){
-      printf("%d %g\n",i, global.ecl_timers.block_timer_acc[i]);
+    for (i = 0; i < 22; i++) {
+      printf("%d %g\n", i, global.ecl_timers.block_timer_acc[i]);
     }
     if (global.pass) break;
   }

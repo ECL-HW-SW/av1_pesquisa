@@ -33,7 +33,6 @@ enum TestDecodeFatality {
 //   unsigned pass;
 // } ECLTimers;
 
-
 typedef enum {
   I420,  // 4:2:0 8+ bit-depth
   I422,  // 4:2:2 8+ bit-depth
@@ -64,13 +63,19 @@ struct AvxEncoderConfig {
   int experimental_bitstream;
   aom_chroma_sample_position_t csp;
   cfg_options_t encoder_config;
+
   //@grellert
   ECLTimers ecl_timers;
-  
+
   int disable_prune_partitions_before_search;
   int disable_prune_partitions_after_split;
-  int disable_prune_4_way_partition_search;
+  int disable_prune_4_way_partition_search;  // seg fault
 
+  int disable_av1_prune_ab_partitions;  // seg fault
+  int disable_av1_ml_prune_4_partition;
+  int disable_prune_4_partition_using_split_info;
+  int disable_av1_ml_prune_rect_partition;
+  int disable_prune_partitions_after_none;
 };
 
 #ifdef __cplusplus

@@ -640,11 +640,10 @@ static void update_default_encoder_config(const cfg_options_t *cfg,
                                           struct av1_extracfg *extra_cfg) {
   extra_cfg->enable_cdef = (cfg->disable_cdef == 0);
   extra_cfg->enable_restoration = (cfg->disable_lr == 0);
-  extra_cfg->superblock_size = (cfg->super_block_size == 64)
-                                   ? AOM_SUPERBLOCK_SIZE_64X64
-                                   : (cfg->super_block_size == 128)
-                                         ? AOM_SUPERBLOCK_SIZE_128X128
-                                         : AOM_SUPERBLOCK_SIZE_DYNAMIC;
+  extra_cfg->superblock_size =
+      (cfg->super_block_size == 64)    ? AOM_SUPERBLOCK_SIZE_64X64
+      : (cfg->super_block_size == 128) ? AOM_SUPERBLOCK_SIZE_128X128
+                                       : AOM_SUPERBLOCK_SIZE_DYNAMIC;
   extra_cfg->enable_warped_motion = (cfg->disable_warp_motion == 0);
   extra_cfg->enable_dist_wtd_comp = (cfg->disable_dist_wtd_comp == 0);
   extra_cfg->enable_diff_wtd_comp = (cfg->disable_diff_wtd_comp == 0);
@@ -2935,10 +2934,16 @@ static const aom_codec_enc_cfg_t encoder_usage_cfg[] = {
 
       AOM_RC_ONE_PASS,  // g_pass
 
-      0, // grellert - disable prune before search flag
-      0, // disable_prune_partitions_after_split
-      0, //disable_prune_4_way_partition_search
-    
+      0,  // @grellert - disable prune before search flag
+      0,  // disable_prune_partitions_after_split
+      0,  // disable_prune_4_way_partition_search
+
+      0,  // disable_av1_prune_ab_partitions
+      0,  // disable_av1_ml_prune_4_partition
+      0,  // disable_prune_4_partition_using_split_info
+      0,  // disable_av1_ml_prune_rect_partition
+      0,  // disable_prune_partitions_after_none
+
       19,  // g_lag_in_frames
 
       0,                // rc_dropframe_thresh
@@ -3009,11 +3014,16 @@ static const aom_codec_enc_cfg_t encoder_usage_cfg[] = {
 
       AOM_RC_ONE_PASS,  // g_pass
 
-      0, // grellert - disable prune before search
-      0, //disable_prune_partitions_after_split
-      0, //disable_prune_4_way_partition_search
+      0,  // @grellert - disable prune before search
+      0,  // disable_prune_partitions_after_split
+      0,  // disable_prune_4_way_partition_search
 
-      
+      0,  // disable_av1_prune_ab_partitions
+      0,  // disable_av1_ml_prune_4_partition
+      0,  // disable_prune_4_partition_using_split_info
+      0,  // disable_av1_ml_prune_rect_partition
+      0,  // disable_prune_partitions_after_none
+
       1,  // g_lag_in_frames
 
       0,                // rc_dropframe_thresh
