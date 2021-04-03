@@ -2401,25 +2401,67 @@ int main(int argc, const char **argv_) {
   FILE *feat_prune_ab_partition = fopen("./get_prune_ab_partition.csv", "w");
   FILE *feat_prune_4_partition = fopen("./get_prune_4_partition.csv", "w");
 
-  fprintf(feat_based_split, "MAIN;\n");
+  fprintf(feat_based_split,
+          "(nosplit) ;(nosplit) ;(split1) ;(split1) ;(split2) ;(split2) "
+          ";(split3) ;(split3) ;(split4) ;(split4) ;(dc_q * dc_q) / 256.0f "
+          ";has_above ;mi_size_wide_log2(above) ;mi_size_high_log2(above) "
+          ";has_left ;mi_size_wide_log2(left) ;mi_size_high_log2(left) ;bsize "
+          ";particionado \n");
   fclose(feat_based_split);
 
-  fprintf(feat_prune_rect, "\n");
+  fprintf(
+      feat_prune_rect,
+      "(nosplit) ;(nosplit) ;(split1) ;(split1) ;(split2) ;(split2) ;(split3) "
+      ";(split3) ;(split4) ;(split4) ;(rect1) ;(rect2) ;(rect3) ;(rect4) "
+      ";(rect5) ;(rect6) ;(rect7) ;(rect8) ;(dc_q * dc_q) / 256.0f ;has_above "
+      ";mi_size_wide_log2(above) ;mi_size_high_log2(above) ;has_left "
+      ";mi_size_wide_log2(left) ;mi_size_high_log2(left) ;bsize ;particionado "
+      "\n");
   fclose(feat_prune_rect);
 
-  fprintf(feat_early_term_none, "\n");
+  fprintf(
+      feat_early_term_none,
+      "(nosplit) ;(nosplit) ;(split1) ;(split1) ;(split2) ;(split2) "
+      ";(split3) ;(split3) ;(split4) ;(split4) ;(rect1) ;(rect2) ;(rect3) "
+      ";(rect4) ;(rect5) ;(rect6) ;(rect7) ;(rect8) ;(dc_q * dc_q) / "
+      "256.0f ;has_above ;mi_size_wide_log2(above) "
+      ";mi_size_high_log2(above) ;has_left ;mi_size_wide_log2(left) "
+      ";mi_size_high_log2(left) ;rate; dist; rdcost ;bsize ;particionado \n");
   fclose(feat_early_term_none);
 
-  fprintf(feat_early_term_after_split, "\n");
+  fprintf(feat_early_term_after_split,
+          "(dc_q / 4.0f) ;(best_rd / bs / bs / 1024.0f) ;rd_valid(none) "
+          ";rd_ratio(rd / best_rd)(none) ;rd_valid(split) ;rd_ratio(rd / "
+          "best_rd)(split) ;rd_valid(sub1) ;rd_ratio(rd / best_rd)(sub1) "
+          ";min_bw(sub1) ;min_bh(sub1) ;rd_valid(sub2) ;rd_ratio(rd / "
+          "best_rd)(sub2) ;min_bw(sub2) ;min_bh(sub2) ;rd_valid(sub3) "
+          ";rd_ratio(rd / best_rd)(sub3) ;min_bw(sub3) ;min_bh(sub3) "
+          ";rd_valid(sub4) ;rd_ratio(rd / best_rd)(sub4) ;min_bw(sub4) "
+          ";min_bh(sub4) ;(nosplit) ;(split1none) ;(split2none) ;(split3none) "
+          ";(split4none) ;(rect1) ;(rect2) ;(rect3) ;(rect4) ;bsize "
+          ";particionado \n");
   fclose(feat_early_term_after_split);
 
-  fprintf(feat_prune_rect_partition, "\n");
+  fprintf(feat_prune_rect_partition,
+          "none_rd / best_rd ;split1_rd / best_rd ;split2_rd / best_rd "
+          ";split3_rd / best_rd ;split4_rd / best_rd ;\n");
   fclose(feat_prune_rect_partition);
 
-  fprintf(feat_prune_ab_partition, "\n");
+  fprintf(feat_prune_ab_partition,
+          "part_ctx ;var_ctx ;rd_ratio(sub1) ;rd_ratio(sub2) ;rd_ratio(sub3) "
+          ";rd_ratio(sub4) ;rd_ratio(sub5) ;rd_ratio(sub6) ;rd_ratio(sub7) "
+          ";rd_ratio(sub8) ;bsize "
+          ";particionado \n");
   fclose(feat_prune_ab_partition);
 
-  fprintf(feat_prune_4_partition, "\n");
+  fprintf(feat_prune_4_partition,
+          "part_ctx ;pb_source_variance(get_unsigned_bits) ;rd_ratio(sub1) "
+          ";rd_ratio(sub2) ;rd_ratio(sub3) "
+          ";rd_ratio(sub4) ;rd_ratio(sub5) ;rd_ratio(sub6) ;rd_ratio(sub7) "
+          ";rd_ratio(sub8) ;var_ratio(horz4)(sub1) ;var_ratio(horz4)(sub2) "
+          ";var_ratio(horz4)(sub3) ;var_ratio(horz4)(sub4) "
+          ";var_ratio(vert4)(sub1) ;var_ratio(vert4)(sub2) "
+          ";var_ratio(vert4)(sub3) ;var_ratio(vert4)(sub4) ;\n");
   fclose(feat_prune_4_partition);
 
   if (argc < 2) usage_exit();

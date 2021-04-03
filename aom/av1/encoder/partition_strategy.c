@@ -302,7 +302,7 @@ void av1_simple_motion_search_based_split(
     features[idx] = (features[idx] - ml_mean[idx]) / ml_std[idx];
   }
 
-  fprintf(feat_based_split, "\n");
+  fprintf(feat_based_split, "%d\n", bsize);
 
   fclose(feat_based_split);
 
@@ -559,7 +559,7 @@ void av1_simple_motion_search_prune_rect(
     features[f_idx] = (features[f_idx] - ml_mean[f_idx]) / ml_std[f_idx];
   }
 
-  fprintf(feat_prune_rect, "\n");
+  fprintf(feat_prune_rect, "%d\n", bsize);
 
   fclose(feat_prune_rect);
 
@@ -645,7 +645,7 @@ void av1_simple_motion_search_early_term_none(
     }
     score += ml_model[FEATURE_SIZE_SMS_TERM_NONE];
 
-    fprintf(feat_early_term_none, "\n");
+    fprintf(feat_early_term_none, "%d\n", bsize);
 
     fclose(feat_early_term_none);
 
@@ -941,7 +941,7 @@ void av1_ml_early_term_after_split(AV1_COMP *const cpi, MACROBLOCK *const x,
     fprintf(feat_early_term_after_split, "%f;", features[f_idx]);
   }
 
-  fprintf(feat_early_term_after_split, "\n");
+  fprintf(feat_early_term_after_split, "%d\n", bsize);
 
   fclose(feat_early_term_after_split);
 
@@ -1039,7 +1039,7 @@ void av1_ml_prune_rect_partition(const AV1_COMP *const cpi,
     fprintf(feat_prune_rect_partition, "%f;", features[f_idx]);
   }
 
-  fprintf(feat_prune_rect_partition, "\n");
+  fprintf(feat_prune_rect_partition, "%d\n", bsize);
 
   fclose(feat_prune_rect_partition);
 
@@ -1116,7 +1116,7 @@ void av1_ml_prune_ab_partition(
     fprintf(feat_prune_ab_partition, "%f;", features[f_idx]);
   }
 
-  fprintf(feat_prune_ab_partition, "\n");
+  fprintf(feat_prune_ab_partition, "%d\n", bsize);
 
   fclose(feat_prune_ab_partition);
 
@@ -1269,7 +1269,7 @@ void av1_ml_prune_4_partition(
     fprintf(feat_prune_4_partition, "%f;", features[f_idx]);
   }
 
-  fprintf(feat_prune_4_partition, "\n");
+  fprintf(feat_prune_4_partition, "%d\n", bsize);
 
   fclose(feat_prune_4_partition);
 
