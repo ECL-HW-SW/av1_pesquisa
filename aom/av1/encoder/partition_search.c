@@ -3543,15 +3543,24 @@ BEGIN_PARTITION_SEARCH:
                          &part_split_rd);
   // @grellert -- @icaro, verificar se mudou aqui
 
-  FILE *feat_based_split = fopen("./based_split.csv", "a");
-  if (max_rd != best_rdc.rdcost) {
-    fprintf(feat_based_split, "1;\n");
-  } else {
-    fprintf(feat_based_split, "0;\n");
+  if(!frame_is_intra_only(cm) && (bsize != 0)){
+    FILE *feat_based_split = fopen("../output_files/based_split.csv", "a");
+    if (max_rd != best_rdc.rdcost) {
+      fprintf(feat_based_split, "%d;%d;%d;%d;1;\n",\
+          cm->current_frame.frame_number,
+          part_search_state.part_blk_params.mi_row,\
+          part_search_state.part_blk_params.mi_col,\
+          bsize);
+    } 
+    else {
+      fprintf(feat_based_split, "%d;%d;%d;%d;0;\n",\
+          cm->current_frame.frame_number,
+          part_search_state.part_blk_params.mi_row,\
+          part_search_state.part_blk_params.mi_col,\
+          bsize);    
+    }
+    fclose(feat_based_split);
   }
-
-  fclose(feat_based_split);
-
   ecltimers->block_timer_begin[bsize] = clock();
 
   // Terminate partition search for child partition,
