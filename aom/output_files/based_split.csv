@@ -1,4 +1,4 @@
-(nosplit) ;(nosplit) ;(split1) ;(split1) ;(split2) ;(split2) ;(split3) ;(split3) ;(split4) ;(split4) ;(dc_q * dc_q) / 256.0f ;has_above ;mi_size_wide_log2(above) ;mi_size_high_log2(above) ;has_left ;mi_size_wide_log2(left) ;mi_size_high_log2(left);frame_num;mi_row;mi_col;bsize ;particionado 
+(nosplit) ;(nosplit) ;(split1) ;(split1) ;(split2) ;(split2) ;(split3) ;(split3) ;(split4) ;(split4) ;(dc_q * dc_q) / 256.0f ;has_above ;mi_size_wide_log2(above) ;mi_size_high_log2(above) ;has_left ;mi_size_wide_log2(left) ;mi_size_high_log2(left) ;frame_num ;mi_row ;mi_col ;bsize ;particionado 
 13.177921;13.177539;11.443211;11.439365;11.820381;11.820358;10.276223;10.230198;12.298670;12.297306;0.940983;0.000000;5.000000;5.000000;0.000000;5.000000;5.000000;1;0;0;15;
 11.443211;11.439365;10.339805;10.328592;9.116579;9.114270;8.843760;8.841738;8.635509;8.635509;0.940983;0.000000;4.000000;4.000000;0.000000;4.000000;4.000000;1;0;0;12;
 10.339805;10.328592;8.781709;8.769507;8.460199;8.438799;8.185629;8.160233;7.290293;7.195187;0.940983;0.000000;3.000000;3.000000;0.000000;3.000000;3.000000;1;0;0;9;

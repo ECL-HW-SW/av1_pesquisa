@@ -138,11 +138,12 @@ void av1_ml_prune_rect_partition(const AV1_COMP *const cpi,
 // Use a ML model to predict if horz_a, horz_b, vert_a, and vert_b should be
 // considered.
 void av1_ml_prune_ab_partition(
-    BLOCK_SIZE bsize, int part_ctx, int var_ctx, int64_t best_rd,
-    int64_t horz_rd[SUB_PARTITIONS_RECT], int64_t vert_rd[SUB_PARTITIONS_RECT],
+    const AV1_COMP *const cpi, BLOCK_SIZE bsize, int part_ctx, int var_ctx,
+    int64_t best_rd, int64_t horz_rd[SUB_PARTITIONS_RECT],
+    int64_t vert_rd[SUB_PARTITIONS_RECT],
     int64_t split_rd[SUB_PARTITIONS_SPLIT], int *const horza_partition_allowed,
     int *const horzb_partition_allowed, int *const verta_partition_allowed,
-    int *const vertb_partition_allowed);
+    int *const vertb_partition_allowed, int mi_row, int mi_col);
 
 // Use a ML model to predict if horz4 and vert4 should be considered.
 void av1_ml_prune_4_partition(
@@ -190,7 +191,8 @@ void av1_prune_ab_partitions(
     const RD_RECT_PART_WIN_INFO *rect_part_win_info, int ext_partition_allowed,
     int partition_horz_allowed, int partition_vert_allowed,
     int *horza_partition_allowed, int *horzb_partition_allowed,
-    int *verta_partition_allowed, int *vertb_partition_allowed);
+    int *verta_partition_allowed, int *vertb_partition_allowed, int mi_row,
+    int mi_col);
 #endif  // !CONFIG_REALTIME_ONLY
 
 // A simplified version of set_offsets meant to be used for

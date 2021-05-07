@@ -2700,7 +2700,8 @@ static void ab_partitions_search(
         part_search_state->partition_rect_allowed[HORZ],
         part_search_state->partition_rect_allowed[VERT],
         &ab_partitions_allowed[HORZ_A], &ab_partitions_allowed[HORZ_B],
-        &ab_partitions_allowed[VERT_A], &ab_partitions_allowed[VERT_B]);
+        &ab_partitions_allowed[VERT_A], &ab_partitions_allowed[VERT_B], mi_row,
+        mi_col);
   }
 
   // Flags to indicate whether the mode search is done.
@@ -3543,21 +3544,18 @@ BEGIN_PARTITION_SEARCH:
                          &part_split_rd);
   // @grellert -- @icaro, verificar se mudou aqui
 
-  if(!frame_is_intra_only(cm) && (bsize != 0)){
-    FILE *feat_based_split = fopen("../output_files/based_split.csv", "a");
+  if (!frame_is_intra_only(cm) && (bsize != 0)) {
+    FILE *feat_based_split = fopen("aom/output_files/based_split.csv", "a");
     if (max_rd != best_rdc.rdcost) {
-      fprintf(feat_based_split, "%d;%d;%d;%d;1;\n",\
-          cm->current_frame.frame_number,
-          part_search_state.part_blk_params.mi_row,\
-          part_search_state.part_blk_params.mi_col,\
-          bsize);
-    } 
-    else {
-      fprintf(feat_based_split, "%d;%d;%d;%d;0;\n",\
-          cm->current_frame.frame_number,
-          part_search_state.part_blk_params.mi_row,\
-          part_search_state.part_blk_params.mi_col,\
-          bsize);    
+      fprintf(feat_based_split, "%d;%d;%d;%d;1;\n",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
+    } else {
+      fprintf(feat_based_split, "%d;%d;%d;%d;0;\n",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
     }
     fclose(feat_based_split);
   }

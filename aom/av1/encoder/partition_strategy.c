@@ -29,6 +29,8 @@
 #include "av1/encoder/partition_strategy.h"
 #include "av1/encoder/rdopt.h"
 
+#include "av1/encoder/encodeframe_utils.h"
+
 #if !CONFIG_REALTIME_ONLY
 static AOM_INLINE void simple_motion_search_prune_part_features(
     AV1_COMP *const cpi, MACROBLOCK *x, SIMPLE_MOTION_DATA_TREE *sms_tree,
@@ -295,18 +297,15 @@ void av1_simple_motion_search_based_split(
   */
 
   // @icaro
-  FILE *feat_based_split = fopen("../output_files/based_split.csv", "a");
+  FILE *feat_based_split = fopen("aom/output_files/based_split.csv", "a");
 
   for (int idx = 0; idx < FEATURE_SIZE_SMS_SPLIT; idx++) {
     fprintf(feat_based_split, "%f;", features[idx]);
     features[idx] = (features[idx] - ml_mean[idx]) / ml_std[idx];
   }
 
-  fprintf(feat_based_split,  "%d;%d;%d;%d;\n",\
-          cm->current_frame.frame_number,\
-          mi_row,\
-          mi_col,\
-          bsize);
+  fprintf(feat_based_split, "%d;%d;%d;%d;\n", cm->current_frame.frame_number,
+          mi_row, mi_col, bsize);
 
   fclose(feat_based_split);
 
@@ -556,14 +555,15 @@ void av1_simple_motion_search_prune_rect(
                                            FEATURE_SMS_PRUNE_PART_FLAG);
 
   // @icaro
-  FILE *feat_prune_rect = fopen("../output_files/get_prune_rect.csv", "a");
+  FILE *feat_prune_rect = fopen("aom/output_files/get_prune_rect.csv", "a");
 
   for (int f_idx = 0; f_idx < FEATURE_SIZE_SMS_PRUNE_PART; f_idx++) {
     fprintf(feat_prune_rect, "%f;", features[f_idx]);
     features[f_idx] = (features[f_idx] - ml_mean[f_idx]) / ml_std[f_idx];
   }
 
-  fprintf(feat_prune_rect, "%d\n", bsize);
+  fprintf(feat_prune_rect, "%d;%d;%d;%d;\n", cm->current_frame.frame_number,
+          mi_row, mi_col, bsize);
 
   fclose(feat_prune_rect);
 
@@ -599,6 +599,7 @@ void av1_simple_motion_search_early_term_none(
     AV1_COMP *const cpi, MACROBLOCK *x, SIMPLE_MOTION_DATA_TREE *sms_tree,
     int mi_row, int mi_col, BLOCK_SIZE bsize, const RD_STATS *none_rdc,
     int *early_terminate) {
+  const AV1_COMMON *const cm = &cpi->common;
   // TODO(chiyotsai@google.com): There are other features we can extract from
   // PARTITION_NONE. Play with this later.
   float features[FEATURE_SIZE_SMS_TERM_NONE] = { 0.0f };
@@ -638,7 +639,8 @@ void av1_simple_motion_search_early_term_none(
   }
 
   // @icaro
-  FILE *feat_early_term_none = fopen("../output_files/early_term_none.csv", "a");
+  FILE *feat_early_term_none =
+      fopen("aom/output_files/early_term_none.csv", "a");
 
   if (ml_model) {
     float score = 0.0f;
@@ -649,7 +651,8 @@ void av1_simple_motion_search_early_term_none(
     }
     score += ml_model[FEATURE_SIZE_SMS_TERM_NONE];
 
-    fprintf(feat_early_term_none, "%d\n", bsize);
+    fprintf(feat_early_term_none, "%d;%d;%d;%d;\n",
+            cm->current_frame.frame_number, mi_row, mi_col, bsize);
 
     fclose(feat_early_term_none);
 
@@ -939,13 +942,14 @@ void av1_ml_early_term_after_split(AV1_COMP *const cpi, MACROBLOCK *const x,
 
   // @icaro
   FILE *feat_early_term_after_split =
-      fopen("../output_files/get_early_term_after_split.csv", "a");
+      fopen("aom/output_files/get_early_term_after_split.csv", "a");
 
   for (int f_idx = 0; f_idx < FEATURES; f_idx++) {
     fprintf(feat_early_term_after_split, "%f;", features[f_idx]);
   }
 
-  fprintf(feat_early_term_after_split, "%d\n", bsize);
+  fprintf(feat_early_term_after_split, "%d;%d;%d;%d;\n",
+          cm->current_frame.frame_number, mi_row, mi_col, bsize);
 
   fclose(feat_early_term_after_split);
 
@@ -963,6 +967,8 @@ void av1_ml_prune_rect_partition(const AV1_COMP *const cpi,
                                  int64_t best_rd, int64_t none_rd,
                                  int64_t *split_rd, int *const dst_prune_horz,
                                  int *const dst_prune_vert) {
+  const AV1_COMMON *const cm = &cpi->common;
+  PartitionSearchState part_search_state;
   if (bsize < BLOCK_8X8 || best_rd >= 1000000000) return;
   best_rd = AOMMAX(best_rd, 1);
   const NN_CONFIG *nn_config = NULL;
@@ -1037,13 +1043,16 @@ void av1_ml_prune_rect_partition(const AV1_COMP *const cpi,
 
   // @icaro
   FILE *feat_prune_rect_partition =
-      fopen("../output_files/get_prune_rect_partition.csv", "a");
+      fopen("aom/output_files/get_prune_rect_partition.csv", "a");
 
   for (int f_idx = 0; f_idx < 9; f_idx++) {
     fprintf(feat_prune_rect_partition, "%f;", features[f_idx]);
   }
 
-  fprintf(feat_prune_rect_partition, "%d\n", bsize);
+  fprintf(feat_prune_rect_partition, "%d;%d;%d;%d;\n",
+          cm->current_frame.frame_number,
+          part_search_state.part_blk_params.mi_row,
+          part_search_state.part_blk_params.mi_col, bsize);
 
   fclose(feat_prune_rect_partition);
 
@@ -1063,11 +1072,14 @@ void av1_ml_prune_rect_partition(const AV1_COMP *const cpi,
 // Use a ML model to predict if horz_a, horz_b, vert_a, and vert_b should be
 // considered.
 void av1_ml_prune_ab_partition(
-    BLOCK_SIZE bsize, int part_ctx, int var_ctx, int64_t best_rd,
-    int64_t horz_rd[SUB_PARTITIONS_RECT], int64_t vert_rd[SUB_PARTITIONS_RECT],
+    const AV1_COMP *const cpi, BLOCK_SIZE bsize, int part_ctx, int var_ctx,
+    int64_t best_rd, int64_t horz_rd[SUB_PARTITIONS_RECT],
+    int64_t vert_rd[SUB_PARTITIONS_RECT],
     int64_t split_rd[SUB_PARTITIONS_SPLIT], int *const horza_partition_allowed,
     int *const horzb_partition_allowed, int *const verta_partition_allowed,
-    int *const vertb_partition_allowed) {
+    int *const vertb_partition_allowed, int mi_row, int mi_col) {
+  const AV1_COMMON *const cm = &cpi->common;
+  PartitionSearchState part_search_state;
   if (bsize < BLOCK_8X8 || best_rd >= 1000000000) return;
   const NN_CONFIG *nn_config = NULL;
   switch (bsize) {
@@ -1114,13 +1126,15 @@ void av1_ml_prune_ab_partition(
   }
 
   // @icaro
-  FILE *feat_prune_ab_partition = fopen("../output_files/get_prune_ab_partition.csv", "a");
+  FILE *feat_prune_ab_partition =
+      fopen("aom/output_files/get_prune_ab_partition.csv", "a");
 
   for (int f_idx = 0; f_idx < 10; f_idx++) {
     fprintf(feat_prune_ab_partition, "%f;", features[f_idx]);
   }
 
-  fprintf(feat_prune_ab_partition, "%d\n", bsize);
+  fprintf(feat_prune_ab_partition, " %d;%d;%d;%d;\n",
+          cm->current_frame.frame_number, mi_row, mi_col, bsize);
 
   fclose(feat_prune_ab_partition);
 
@@ -1168,6 +1182,7 @@ void av1_ml_prune_4_partition(
     int64_t split_rd[SUB_PARTITIONS_SPLIT], int *const partition_horz4_allowed,
     int *const partition_vert4_allowed, unsigned int pb_source_variance,
     int mi_row, int mi_col) {
+  const AV1_COMMON *const cm = &cpi->common;
   if (best_rd >= 1000000000) return;
   int64_t *horz_rd = rect_part_rd[HORZ];
   int64_t *vert_rd = rect_part_rd[VERT];
@@ -1267,13 +1282,15 @@ void av1_ml_prune_4_partition(
   }
 
   // @icaro
-  FILE *feat_prune_4_partition = fopen("../output_files/get_prune_4_partition.csv", "a");
+  FILE *feat_prune_4_partition =
+      fopen("aom/output_files/get_prune_4_partition.csv", "a");
 
   for (int f_idx = 0; f_idx < FEATURES; f_idx++) {
     fprintf(feat_prune_4_partition, "%f;", features[f_idx]);
   }
 
-  fprintf(feat_prune_4_partition, "%d\n", bsize);
+  fprintf(feat_prune_4_partition, "%d;%d;%d;%d;\n",
+          cm->current_frame.frame_number, mi_row, mi_col, bsize);
 
   fclose(feat_prune_4_partition);
 
@@ -1541,7 +1558,8 @@ void av1_prune_ab_partitions(
     const RD_RECT_PART_WIN_INFO *rect_part_win_info, int ext_partition_allowed,
     int partition_horz_allowed, int partition_vert_allowed,
     int *horza_partition_allowed, int *horzb_partition_allowed,
-    int *verta_partition_allowed, int *vertb_partition_allowed) {
+    int *verta_partition_allowed, int *vertb_partition_allowed, int mi_row,
+    int mi_col) {
   int64_t *horz_rd = rect_part_rd[HORZ];
   int64_t *vert_rd = rect_part_rd[VERT];
   const PartitionCfg *const part_cfg = &cpi->oxcf.part_cfg;
@@ -1631,11 +1649,11 @@ void av1_prune_ab_partitions(
     // TODO(huisu@google.com): x->source_variance may not be the current
     // block's variance. The correct one to use is pb_source_variance. Need to
     // re-train the model to fix it.
-    av1_ml_prune_ab_partition(bsize, pc_tree->partitioning,
-                              get_unsigned_bits(x->source_variance),
-                              best_rdcost, horz_rd, vert_rd, split_rd,
-                              horza_partition_allowed, horzb_partition_allowed,
-                              verta_partition_allowed, vertb_partition_allowed);
+    av1_ml_prune_ab_partition(
+        cpi, bsize, pc_tree->partitioning,
+        get_unsigned_bits(x->source_variance), best_rdcost, horz_rd, vert_rd,
+        split_rd, horza_partition_allowed, horzb_partition_allowed,
+        verta_partition_allowed, vertb_partition_allowed, mi_row, mi_col);
   }
 
   // Disable ab partitions if they are disabled by the encoder parameter.
