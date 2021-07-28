@@ -33,7 +33,8 @@ void av1_nn_predict_c(const float *input_nodes,
   int num_input_nodes = nn_config->num_inputs;
   int buf_index = 0;
   float buf[2][NN_MAX_NODES_PER_LAYER];
-
+  FILE *ml_bias = fopen("aom/output_files/bias.csv", "a");
+  FILE *ml_weights = fopen("aom/output_files/weights.csv", "a");
   // Propagate hidden layers.
   // Feed-forward NNs
   const int num_layers = nn_config->num_hidden_layers;
@@ -46,11 +47,27 @@ void av1_nn_predict_c(const float *input_nodes,
     assert(num_output_nodes < NN_MAX_NODES_PER_LAYER);
     for (int node = 0; node < num_output_nodes; ++node) {
       float val = layer_bias[node];
-      for (int i = 0; i < num_input_nodes; ++i)
+
+      if (num_input_nodes == 17) {
+        fprintf(ml_bias, "%f;,;", val);
+      }
+      for (int i = 0; i < num_input_nodes; ++i) {
+        if (num_input_nodes == 17) {
+          float val_w = layer_weights[node * num_input_nodes + i];
+          fprintf(ml_weights, "%f;,;", val_w);
+        }
         val += layer_weights[node * num_input_nodes + i] * input_nodes[i];
+      }
       // ReLU as activation function.
       val = val > 0.0f ? val : 0.0f;  // Could use AOMMAX().
       output_nodes[node] = val;
+    }
+    if (num_input_nodes == 17) {
+      fprintf(ml_bias, "\n");
+      fprintf(ml_weights, "\n");
+
+      fclose(ml_bias);
+      fclose(ml_weights);
     }
     num_input_nodes = num_output_nodes;
     input_nodes = output_nodes;

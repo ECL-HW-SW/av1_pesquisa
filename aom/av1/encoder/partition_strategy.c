@@ -1042,19 +1042,18 @@ void av1_ml_prune_rect_partition(const AV1_COMP *const cpi,
   }
 
   // @icaro
-  FILE *feat_prune_rect_partition =
-      fopen("aom/output_files/get_prune_rect_partition.csv", "a");
+  FILE *feat_prune_rect_ml =
+      fopen("aom/output_files/get_prune_rect_ML.csv", "a");
 
   for (int f_idx = 0; f_idx < 9; f_idx++) {
-    fprintf(feat_prune_rect_partition, "%f;", features[f_idx]);
+    fprintf(feat_prune_rect_ml, "%f;", features[f_idx]);
   }
 
-  fprintf(feat_prune_rect_partition, "%d;%d;%d;%d;\n",
-          cm->current_frame.frame_number,
+  fprintf(feat_prune_rect_ml, "%d;%d;%d;%d;\n", cm->current_frame.frame_number,
           part_search_state.part_blk_params.mi_row,
           part_search_state.part_blk_params.mi_col, bsize);
 
-  fclose(feat_prune_rect_partition);
+  fclose(feat_prune_rect_ml);
 
   // 2. Do the prediction and prune 0-2 partitions based on their probabilities
   float raw_scores[3] = { 0.0f };

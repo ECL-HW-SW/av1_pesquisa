@@ -2548,6 +2548,7 @@ typedef struct AV1_COMP {
   int frames_left;
   // grellert
   ECLTimers *ecl_timers;
+
 } AV1_COMP;
 
 /*!

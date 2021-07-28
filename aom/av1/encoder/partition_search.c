@@ -2482,7 +2482,8 @@ static void rectangular_partition_search(
   RD_STATS *sum_rdc = &part_search_state->sum_rdc;
   const int rect_partition_type[NUM_RECT_PARTS] = { PARTITION_HORZ,
                                                     PARTITION_VERT };
-
+  BLOCK_SIZE bsize;  /////////////////////////////////////////////////////////////////////////////////////////////////////
+                     ///encontrar bsize
   // mi_pos_rect[NUM_RECT_PARTS][SUB_PARTITIONS_RECT][0]: mi_row postion of
   //                                           HORZ and VERT partition types.
   // mi_pos_rect[NUM_RECT_PARTS][SUB_PARTITIONS_RECT][1]: mi_col postion of
@@ -2510,6 +2511,7 @@ static void rectangular_partition_search(
   };
 
   // Loop over rectangular partition types.
+  // @grellert : faz primeiro HORZ, depois VERT - 2 laços
   for (RECT_PART_TYPE i = HORZ; i < NUM_RECT_PARTS; i++) {
     assert(IMPLIES(!cpi->oxcf.part_cfg.enable_rect_partitions,
                    !part_search_state->partition_rect_allowed[i]));
@@ -2582,7 +2584,38 @@ static void rectangular_partition_search(
     }
 #endif
     // Update HORZ / VERT best partition.
+    // @grellert: @icaro - tem que setar as duas flags de split aqui
+
+    FILE *feat_early_term_after_split =
+        fopen("aom/output_files/get_early_term_after_split.csv", "a");
+    FILE *feat_prune_rect_ml =
+        fopen("aom/output_files/get_prune_rect_ML.csv", "a");
+    FILE *feat_prune_rect = fopen("aom/output_files/get_prune_rect.csv", "a");
+
     if (sum_rdc->rdcost < best_rdc->rdcost) {
+      // @icaro - brd rectangular_partition_search
+      if (!frame_is_intra_only(cm) && (bsize != 0)) {
+        int64_t max_rd = best_rdc->rdcost;
+
+        if (i == 0) {
+          fprintf(feat_early_term_after_split, "%d;%d;%d;%d;1_rec_h;",
+                  cm->current_frame.frame_number, blk_params.mi_row,
+                  blk_params.mi_col, bsize);
+
+          fprintf(feat_prune_rect_ml, "%d;%d;%d;%d;1_h;",
+                  cm->current_frame.frame_number, blk_params.mi_row,
+                  blk_params.mi_col, bsize);
+          fprintf(feat_prune_rect, "%d;%d;%d;%d;1_h;",
+                  cm->current_frame.frame_number, blk_params.mi_row,
+                  blk_params.mi_col, bsize);
+        } else {
+          fprintf(feat_early_term_after_split, "1_rec_v;\n");
+
+          fprintf(feat_prune_rect_ml, "1_v;\n");
+          fprintf(feat_prune_rect, "1_v;\n");
+        }
+      }
+
       sum_rdc->rdcost = RDCOST(x->rdmult, sum_rdc->rate, sum_rdc->dist);
       if (sum_rdc->rdcost < best_rdc->rdcost) {
         *best_rdc = *sum_rdc;
@@ -2590,10 +2623,35 @@ static void rectangular_partition_search(
         pc_tree->partitioning = partition_type;
       }
     } else {
+      if (!frame_is_intra_only(cm) && (bsize != 0)) {
+        if (i == 0) {
+          fprintf(feat_early_term_after_split, "%d;%d;%d;%d;0_rec_h;",
+                  cm->current_frame.frame_number, blk_params.mi_row,
+                  blk_params.mi_col, bsize);
+
+          fprintf(feat_prune_rect_ml, "%d;%d;%d;%d;0_h;",
+                  cm->current_frame.frame_number, blk_params.mi_row,
+                  blk_params.mi_col, bsize);
+          fprintf(feat_prune_rect, "%d;%d;%d;%d;0_h;",
+                  cm->current_frame.frame_number, blk_params.mi_row,
+                  blk_params.mi_col, bsize);
+        } else {
+          fprintf(feat_early_term_after_split, "0_rec_v;\n");
+
+          fprintf(feat_prune_rect_ml, "0_v;\n");
+          fprintf(feat_prune_rect, "0_v;\n");
+        }
+      }
+
       // Update HORZ / VERT win flag.
       if (rect_part_win_info != NULL)
         rect_part_win_info->rect_part_win[i] = false;
     }
+    fclose(feat_early_term_after_split);
+
+    fclose(feat_prune_rect_ml);
+    fclose(feat_prune_rect);
+
     av1_restore_context(x, x_ctx, blk_params.mi_row, blk_params.mi_col,
                         blk_params.bsize, av1_num_planes(cm));
   }
@@ -2689,7 +2747,7 @@ static void ab_partitions_search(
   int ab_partitions_allowed[NUM_AB_PARTS] = { 1, 1, 1, 1 };
   // Prune AB partitions
 
-  // @icaro
+  // @icaro -- flag disable_av1_prune_ab_partitions
   ECLTimers *ecltimers = cpi->ecl_timers;
 
   if (!ecltimers->disable_av1_prune_ab_partitions) {
@@ -2954,7 +3012,7 @@ static void prune_4_way_partition_search(
                                     pc_tree->partitioning == PARTITION_NONE);
   }
 
-  // @icaro
+  // @icaro -- flag disable_av1_ml_prune_4_partition
   ECLTimers *ecltimers = cpi->ecl_timers;
 
   // Pruning: pruning out some 4-way partitions using a DNN taking rd costs of
@@ -3106,6 +3164,9 @@ static void prune_partitions_after_split(
 
   // Early termination: using the rd costs of PARTITION_NONE and subblocks
   // from PARTITION_SPLIT to determine an early breakout.
+
+  // @grellert: @icaro - a flag desse cara é 0 quando o melhor rd-cost vem de
+  // NONE ou SPLIT - vamos deixar pra depois esse aqui
   if (cpi->sf.part_sf.ml_early_term_after_part_split_level &&
       !frame_is_intra_only(cm) &&
       !part_search_state->terminate_partition_search &&
@@ -3117,7 +3178,7 @@ static void prune_partitions_after_split(
         part_search_state->split_rd, mi_row, mi_col,
         &part_search_state->terminate_partition_search);
   }
-  // @icaro
+  // @icaro -- flag disable_av1_ml_prune_rect_partition
   ECLTimers *ecltimers = cpi->ecl_timers;
 
   // Use the rd costs of PARTITION_NONE and subblocks from PARTITION_SPLIT
@@ -3216,7 +3277,7 @@ static void none_partition_search(
 
       // Disable split and rectangular partition search
       // based on PARTITION_NONE cost.
-      // @icaro
+      // @icaro -- flag disable_prune_partitions_after_none
       ECLTimers *ecltimers = cpi->ecl_timers;
       if (!ecltimers->disable_prune_partitions_after_none) {
         prune_partitions_after_none(cpi, x, sms_tree, pc_tree->none,
@@ -3522,9 +3583,31 @@ BEGIN_PARTITION_SEARCH:
 
   // PARTITION_NONE search stage.
   int64_t part_none_rd = INT64_MAX;
+
+  int64_t max_rd = best_rdc.rdcost;
+
   none_partition_search(cpi, td, tile_data, x, pc_tree, sms_tree, &x_ctx,
                         &part_search_state, &best_rdc, &pb_source_variance,
                         none_rd, &part_none_rd);
+  // @grellert: @icaro - aqui tem que testar se part none rd é o best pra setar
+  // a flag
+
+  if (!frame_is_intra_only(cm) && (bsize != 0)) {
+    FILE *feat_early_term_none =
+        fopen("aom/output_files/early_term_none.csv", "a");
+    if (max_rd != best_rdc.rdcost) {
+      fprintf(feat_early_term_none, "%d;%d;%d;%d;1;\n",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
+    } else {
+      fprintf(feat_early_term_none, "%d;%d;%d;%d;0;\n",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
+    }
+    fclose(feat_early_term_none);
+  }
 
   // grellert: a partir daqui já não é mais quadrado
 
@@ -3535,14 +3618,14 @@ BEGIN_PARTITION_SEARCH:
   ecltimers->block_timer_acc[bsize] += (ecltimers->block_timer_end[bsize] -
                                         ecltimers->block_timer_begin[bsize]) /
                                        CLOCKS_PER_SEC;
-  // @grellert -- @icaro, salvar best_rdc aqui
+  // @grellert -- @icaro - , salvar best_rdc aqui
 
-  int64_t max_rd = best_rdc.rdcost;
+  max_rd = best_rdc.rdcost;
 
   split_partition_search(cpi, td, tile_data, tp, x, pc_tree, sms_tree, &x_ctx,
                          &part_search_state, &best_rdc, multi_pass_mode,
                          &part_split_rd);
-  // @grellert -- @icaro, verificar se mudou aqui
+  // @grellert -- verificar se mudou aqui
 
   if (!frame_is_intra_only(cm) && (bsize != 0)) {
     FILE *feat_based_split = fopen("aom/output_files/based_split.csv", "a");
@@ -3570,7 +3653,7 @@ BEGIN_PARTITION_SEARCH:
   }
 
   // Prune partitions based on PARTITION_NONE and PARTITION_SPLIT.
-  // @icaro
+  // @icaro -- flag disable_prune_partitions_after_split
   if (!ecltimers->disable_prune_partitions_after_split) {
     prune_partitions_after_split(cpi, x, sms_tree, &part_search_state,
                                  &best_rdc, part_none_rd, part_split_rd);
@@ -3600,10 +3683,47 @@ BEGIN_PARTITION_SEARCH:
       bsize > cpi->sf.part_sf.ext_partition_eval_thresh &&
       blk_params.has_rows && blk_params.has_cols;
 
+  // @icaro - brd ab_partitions_search
+
+  max_rd = best_rdc.rdcost;
+
   // AB partitions search stage.
   ab_partitions_search(cpi, td, tile_data, tp, x, &x_ctx, pc_tree,
                        &part_search_state, &best_rdc, rect_part_win_info,
                        pb_source_variance, ext_partition_allowed);
+
+  FILE *feat_early_term_after_split =
+      fopen("aom/output_files/get_early_term_after_split.csv", "a");
+
+  FILE *feat_prune_ab_partition =
+      fopen("aom/output_files/get_prune_ab_partition.csv", "a");
+  if (max_rd != best_rdc.rdcost) {
+    fprintf(feat_prune_ab_partition, "%d;%d;%d;%d;1;\n",
+            cm->current_frame.frame_number,
+            part_search_state.part_blk_params.mi_row,
+            part_search_state.part_blk_params.mi_col, bsize);
+
+    if (!frame_is_intra_only(cm) && (bsize != 0)) {
+      fprintf(feat_early_term_after_split, "%d;%d;%d;%d;1_ab;\n",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
+    }
+  } else {
+    fprintf(feat_prune_ab_partition, "%d;%d;%d;%d;0;\n",
+            cm->current_frame.frame_number,
+            part_search_state.part_blk_params.mi_row,
+            part_search_state.part_blk_params.mi_col, bsize);
+
+    if (!frame_is_intra_only(cm) && (bsize != 0)) {
+      fprintf(feat_early_term_after_split, "%d;%d;%d;%d;0_ab;\n",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
+    }
+  }
+  fclose(feat_prune_ab_partition);
+  fclose(feat_early_term_after_split);
 
   // 4-way partitions search stage.
   int part4_search_allowed[NUM_PART4_TYPES] = { 1, 1 };
@@ -3615,7 +3735,7 @@ BEGIN_PARTITION_SEARCH:
     part4_search_allowed[VERT4] = 0;
   } else {
     // Prune 4-way partition search.
-    // @icaro
+    // @icaro -- flag disable_prune_4_way_partition_search
     if (!ecltimers->disable_prune_4_way_partition_search) {
       prune_4_way_partition_search(cpi, x, pc_tree, &part_search_state,
                                    &best_rdc, pb_source_variance,
@@ -3632,10 +3752,50 @@ BEGIN_PARTITION_SEARCH:
        av1_active_h_edge(cpi, mi_row, blk_params.mi_step))) {
     const int inc_step[NUM_PART4_TYPES] = { mi_size_high[blk_params.bsize] / 4,
                                             0 };
+    // @icaro - brd rd_pick_4partition_hor
+
+    max_rd = best_rdc.rdcost;
+
     // Evaluation of Horz4 partition type.
     rd_pick_4partition(cpi, td, tile_data, tp, x, &x_ctx, pc_tree,
                        pc_tree->horizontal4, &part_search_state, &best_rdc,
                        inc_step, PARTITION_HORZ_4);
+
+    // if (!frame_is_intra_only(cm) && (bsize != 0)) {
+    FILE *feat_early_term_after_split =
+        fopen("aom/output_files/get_early_term_after_split.csv", "a");
+
+    FILE *feat_prune_4_partition =
+        fopen("aom/output_files/get_prune_4_partition.csv", "a");
+
+    if (max_rd != best_rdc.rdcost) {
+      fprintf(feat_prune_4_partition, "%d;%d;%d;%d;1_hor;",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
+
+      if (!frame_is_intra_only(cm) && (bsize != 0)) {
+        fprintf(feat_early_term_after_split, "%d;%d;%d;%d;1_4way_hor;",
+                cm->current_frame.frame_number,
+                part_search_state.part_blk_params.mi_row,
+                part_search_state.part_blk_params.mi_col, bsize);
+      }
+    } else {
+      fprintf(feat_prune_4_partition, "%d;%d;%d;%d;0_hor;",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
+
+      if (!frame_is_intra_only(cm) && (bsize != 0)) {
+        fprintf(feat_early_term_after_split, "%d;%d;%d;%d;0_4way_hor;",
+                cm->current_frame.frame_number,
+                part_search_state.part_blk_params.mi_row,
+                part_search_state.part_blk_params.mi_col, bsize);
+      }
+    }
+    fclose(feat_prune_4_partition);
+    fclose(feat_early_term_after_split);
+    //}
   }
 
   // PARTITION_VERT_4
@@ -3647,10 +3807,38 @@ BEGIN_PARTITION_SEARCH:
        av1_active_v_edge(cpi, mi_row, blk_params.mi_step))) {
     const int inc_step[NUM_PART4_TYPES] = { 0, mi_size_wide[blk_params.bsize] /
                                                    4 };
+
+    // @icaro - brd rd_pick_4partition_ver
+
+    max_rd = best_rdc.rdcost;
+
     // Evaluation of Vert4 partition type.
     rd_pick_4partition(cpi, td, tile_data, tp, x, &x_ctx, pc_tree,
                        pc_tree->vertical4, &part_search_state, &best_rdc,
                        inc_step, PARTITION_VERT_4);
+
+    // if (!frame_is_intra_only(cm) && (bsize != 0)) {
+    FILE *feat_early_term_after_split =
+        fopen("aom/output_files/get_early_term_after_split.csv", "a");
+
+    FILE *feat_prune_4_partition =
+        fopen("aom/output_files/get_prune_4_partition.csv", "a");
+    if (max_rd != best_rdc.rdcost) {
+      fprintf(feat_prune_4_partition, "1_ver;\n");
+
+      if (!frame_is_intra_only(cm) && (bsize != 0)) {
+        fprintf(feat_early_term_after_split, "1_4way_ver;\n");
+      }
+    } else {
+      fprintf(feat_prune_4_partition, "0_ver;\n");
+
+      if (!frame_is_intra_only(cm) && (bsize != 0)) {
+        fprintf(feat_early_term_after_split, "0_4way_ver;\n");
+      }
+    }
+    fclose(feat_prune_4_partition);
+    fclose(feat_early_term_after_split);
+    //}
   }
   ecltimers->block_timer_end[bsize] = clock();
   ecltimers->block_timer_acc[bsize] +=

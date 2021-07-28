@@ -2391,14 +2391,18 @@ int main(int argc, const char **argv_) {
   parse_global_config(&global, &argv);
 
   //@icaro
+
+  FILE *ml_bias = fopen("aom/output_files/bias.csv", "w");
+  FILE *ml_weights = fopen("aom/output_files/weights.csv", "w");
+
   FILE *feat_based_split = fopen("aom/output_files/based_split.csv", "w");
   FILE *feat_prune_rect = fopen("aom/output_files/get_prune_rect.csv", "w");
   FILE *feat_early_term_none =
       fopen("aom/output_files/early_term_none.csv", "w");
   FILE *feat_early_term_after_split =
       fopen("aom/output_files/get_early_term_after_split.csv", "w");
-  FILE *feat_prune_rect_partition =
-      fopen("aom/output_files/get_prune_rect_partition.csv", "w");
+  FILE *feat_prune_rect_ml =
+      fopen("aom/output_files/get_prune_rect_ML.csv", "w");
   FILE *feat_prune_ab_partition =
       fopen("aom/output_files/get_prune_ab_partition.csv", "w");
   FILE *feat_prune_4_partition =
@@ -2420,7 +2424,7 @@ int main(int argc, const char **argv_) {
       ";(rect5) ;(rect6) ;(rect7) ;(rect8) ;(dc_q * dc_q) / 256.0f ;has_above "
       ";mi_size_wide_log2(above) ;mi_size_high_log2(above) ;has_left "
       ";mi_size_wide_log2(left) ;mi_size_high_log2(left) ;frame_num ;mi_row "
-      ";mi_col ;bsize ;particionado \n");
+      ";mi_col ;bsize ;particionado_hor ;particionado_ver \n");
   fclose(feat_prune_rect);
 
   fprintf(feat_early_term_none,
@@ -2443,14 +2447,15 @@ int main(int argc, const char **argv_) {
           ";rd_valid(sub4) ;rd_ratio(rd / best_rd)(sub4) ;min_bw(sub4) "
           ";min_bh(sub4) ;(nosplit) ;(split1none) ;(split2none) ;(split3none) "
           ";(split4none) ;(rect1) ;(rect2) ;(rect3) ;(rect4) ;frame_num "
-          ";mi_row ;mi_col ;bsize ;particionado \n");
+          ";mi_row ;mi_col ;bsize ;particionado_recthor ;particionado_rectver; "
+          "particionado_ab; particionado_4whor; particionado_4wver \n");
   fclose(feat_early_term_after_split);
 
-  fprintf(feat_prune_rect_partition,
+  fprintf(feat_prune_rect_ml,
           "none_rd / best_rd ;split1_rd / best_rd ;split2_rd / best_rd "
           ";split3_rd / best_rd ;split4_rd / best_rd ;frame_num ;mi_row "
-          ";mi_col ;bsize ;particionado \n");
-  fclose(feat_prune_rect_partition);
+          ";mi_col ;bsize ;particionado_hor ;particionado_ver \n");
+  fclose(feat_prune_rect_ml);
 
   fprintf(feat_prune_ab_partition,
           "part_ctx ;var_ctx ;rd_ratio(sub1) ;rd_ratio(sub2) ;rd_ratio(sub3) "
@@ -2466,7 +2471,7 @@ int main(int argc, const char **argv_) {
           ";var_ratio(horz4)(sub3) ;var_ratio(horz4)(sub4) "
           ";var_ratio(vert4)(sub1) ;var_ratio(vert4)(sub2) "
           ";var_ratio(vert4)(sub3) ;var_ratio(vert4)(sub4) ;frame_num ;mi_row "
-          ";mi_col ;bsize ;particionado \n");
+          ";mi_col ;bsize ;particionado_hor ;particionado_ver \n");
   fclose(feat_prune_4_partition);
 
   if (argc < 2) usage_exit();
