@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Alliance for Open Media. All rights reserved
+ * Copyright (c) 2021, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
  * the Alliance for Open Media Patent License 1.0. If the BSD 2 Clause License
@@ -9,15 +9,19 @@
  * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
  */
 
-#ifndef AOM_AOM_PORTS_SYSTEM_STATE_H_
-#define AOM_AOM_PORTS_SYSTEM_STATE_H_
+extern const int global_a[13];
 
-#include "config/aom_config.h"
+const int global_b = 0;
 
-#if ARCH_X86 || ARCH_X86_64
-void aom_reset_mmx_state(void);
-#define aom_clear_system_state() aom_reset_mmx_state()
-#else
-#define aom_clear_system_state()
-#endif  // ARCH_X86 || ARCH_X86_64
-#endif  // AOM_AOM_PORTS_SYSTEM_STATE_H_
+typedef struct S1 {
+  int x;
+} T1;
+
+struct S3 {
+  int x;
+} s3;
+
+int func_global_1(int *a) {
+  *a = global_a[3];
+  return 0;
+}

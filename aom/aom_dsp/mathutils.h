@@ -9,14 +9,17 @@
  * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
  */
 
-#ifndef AOM_AV1_ENCODER_MATHUTILS_H_
-#define AOM_AV1_ENCODER_MATHUTILS_H_
+#ifndef AOM_DSP_MATHUTILS_H_
+#define AOM_DSP_MATHUTILS_H_
 
 #include <memory.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+
+#include "aom_dsp/aom_dsp_common.h"
+#include "aom_mem/aom_mem.h"
 
 static const double TINY_NEAR_ZERO = 1.0E-16;
 
@@ -114,7 +117,7 @@ static INLINE void multiply_mat(const double *m1, const double *m2, double *res,
 // svdcmp
 // Adopted from Numerical Recipes in C
 
-static INLINE double sign(double a, double b) {
+static INLINE double apply_sign(double a, double b) {
   return ((b) >= 0 ? fabs(a) : -fabs(a));
 }
 
@@ -150,7 +153,7 @@ static INLINE int svdcmp(double **u, int m, int n, double w[], double **v) {
           s += u[k][i] * u[k][i];
         }
         f = u[i][i];
-        g = -sign(sqrt(s), f);
+        g = -apply_sign(sqrt(s), f);
         h = f * g - s;
         u[i][i] = f - g;
         for (j = l; j < n; j++) {
@@ -171,7 +174,7 @@ static INLINE int svdcmp(double **u, int m, int n, double w[], double **v) {
           s += u[i][k] * u[i][k];
         }
         f = u[i][l];
-        g = -sign(sqrt(s), f);
+        g = -apply_sign(sqrt(s), f);
         h = f * g - s;
         u[i][l] = f - g;
         for (k = l; k < n; k++) rv1[k] = u[i][k] / h;
@@ -269,7 +272,7 @@ static INLINE int svdcmp(double **u, int m, int n, double w[], double **v) {
       h = rv1[k];
       f = ((y - z) * (y + z) + (g - h) * (g + h)) / (2.0 * h * y);
       g = pythag(f, 1.0);
-      f = ((x - z) * (x + z) + h * ((y / (f + sign(g, f))) - h)) / x;
+      f = ((x - z) * (x + z) + h * ((y / (f + apply_sign(g, f))) - h)) / x;
       c = s = 1.0;
       for (j = l; j <= nm; j++) {
         i = j + 1;
@@ -356,4 +359,4 @@ static INLINE int SVD(double *U, double *W, double *V, double *matx, int M,
   return 0;
 }
 
-#endif  // AOM_AV1_ENCODER_MATHUTILS_H_
+#endif  // AOM_DSP_MATHUTILS_H_

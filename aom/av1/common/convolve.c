@@ -1025,6 +1025,7 @@ static void highbd_convolve_2d_facade_single(
     const int subpel_y_qn, ConvolveParams *conv_params, int bd) {
   const bool need_x = subpel_x_qn != 0;
   const bool need_y = subpel_y_qn != 0;
+
   if (!need_x && !need_y) {
     aom_highbd_convolve_copy(src, src_stride, dst, dst_stride, w, h);
   } else if (need_x && !need_y) {

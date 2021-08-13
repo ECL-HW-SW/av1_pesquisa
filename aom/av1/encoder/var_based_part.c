@@ -22,7 +22,6 @@
 #include "aom_dsp/binary_codes_writer.h"
 #include "aom_ports/mem.h"
 #include "aom_ports/aom_timer.h"
-#include "aom_ports/system_state.h"
 
 #include "av1/common/reconinter.h"
 #include "av1/common/blockd.h"
@@ -328,11 +327,9 @@ static AOM_INLINE void fill_variance_4x4avg(const uint8_t *s, int sp,
 // TODO(kyslov) Bring back threshold adjustment based on content state
 static int64_t scale_part_thresh_content(int64_t threshold_base, int speed,
                                          int width, int height,
-                                         int content_state,
                                          int non_reference_frame) {
   (void)width;
   (void)height;
-  (void)content_state;
   int64_t threshold = threshold_base;
   if (non_reference_frame) threshold = (3 * threshold) >> 1;
   if (speed >= 8) {
@@ -342,38 +339,68 @@ static int64_t scale_part_thresh_content(int64_t threshold_base, int speed,
 }
 
 static AOM_INLINE void set_vbp_thresholds(AV1_COMP *cpi, int64_t thresholds[],
-                                          int q, int content_state) {
+                                          int q, int content_lowsumdiff,
+                                          int source_sad, int segment_id) {
   AV1_COMMON *const cm = &cpi->common;
   const int is_key_frame = frame_is_intra_only(cm);
-  const int threshold_multiplier = is_key_frame ? 40 : 1;
+  const int threshold_multiplier = is_key_frame ? 120 : 1;
   int64_t threshold_base =
       (int64_t)(threshold_multiplier *
                 cpi->enc_quant_dequant_params.dequants.y_dequant_QTX[q][1]);
   const int current_qindex = cm->quant_params.base_qindex;
 
   if (is_key_frame) {
+    if (cpi->sf.rt_sf.force_large_partition_blocks_intra) {
+      threshold_base <<= cpi->oxcf.speed - 7;
+    }
     thresholds[0] = threshold_base;
     thresholds[1] = threshold_base;
-    thresholds[2] = threshold_base >> 2;
-    thresholds[3] = threshold_base >> 2;
+    if (cm->width * cm->height < 1280 * 720) {
+      thresholds[2] = threshold_base / 3;
+      thresholds[3] = threshold_base >> 1;
+    } else {
+      int shift_val = 2;
+      if (cpi->sf.rt_sf.force_large_partition_blocks_intra) {
+        shift_val = 0;
+      }
+
+      thresholds[2] = threshold_base >> shift_val;
+      thresholds[3] = threshold_base >> shift_val;
+    }
     thresholds[4] = threshold_base << 2;
   } else {
-    if (cpi->noise_estimate.enabled && cm->width >= 640 && cm->height >= 480) {
+    // Increase partition thresholds for noisy content. Apply it only for
+    // superblocks where sumdiff is low, as we assume the sumdiff of superblock
+    // whose only change is due to noise will be low (i.e, noise will average
+    // out over large block).
+    if (cpi->noise_estimate.enabled && content_lowsumdiff &&
+        (cm->width * cm->height > 640 * 480) &&
+        cm->current_frame.frame_number > 60) {
       NOISE_LEVEL noise_level =
           av1_noise_estimate_extract_level(&cpi->noise_estimate);
       if (noise_level == kHigh)
-        threshold_base = 3 * threshold_base;
-      else if (noise_level == kMedium)
-        threshold_base = threshold_base << 1;
-      else if (noise_level < kLow)
-        threshold_base = (7 * threshold_base) >> 3;
+        threshold_base = (5 * threshold_base) >> 1;
+      else if (noise_level == kMedium &&
+               !cpi->sf.rt_sf.force_large_partition_blocks)
+        threshold_base = (5 * threshold_base) >> 2;
     }
-
+    // TODO(kyslov) Enable var based partition adjusment on temporal denoising
+#if 0  // CONFIG_AV1_TEMPORAL_DENOISING
+    if (cpi->oxcf.noise_sensitivity > 0 && denoise_svc(cpi) &&
+        cpi->oxcf.speed > 5 && cpi->denoiser.denoising_level >= kDenLow)
+      threshold_base =
+          av1_scale_part_thresh(threshold_base, cpi->denoiser.denoising_level,
+                                content_state, cpi->svc.temporal_layer_id);
+    else
+      threshold_base =
+        scale_part_thresh_content(threshold_base, cpi->oxcf.speed, cm->width,
+                                  cm->height, cpi->svc.non_reference_frame);
+#else
     // Increase base variance threshold based on content_state/sum_diff level.
-    threshold_base = scale_part_thresh_content(
-        threshold_base, cpi->oxcf.speed, cm->width, cm->height, content_state,
-        cpi->svc.non_reference_frame);
-
+    threshold_base =
+        scale_part_thresh_content(threshold_base, cpi->oxcf.speed, cm->width,
+                                  cm->height, cpi->svc.non_reference_frame);
+#endif
     thresholds[0] = threshold_base >> 1;
     thresholds[1] = threshold_base;
     thresholds[3] = threshold_base << cpi->oxcf.speed;
@@ -415,20 +442,45 @@ static AOM_INLINE void set_vbp_thresholds(AV1_COMP *cpi, int64_t thresholds[],
       thresholds[2] = (5 * threshold_base) >> 1;
     }
     if (cpi->sf.rt_sf.force_large_partition_blocks) {
+      double weight;
+      const int win = 20;
+      if (current_qindex < QINDEX_LARGE_BLOCK_THR - win)
+        weight = 1.0;
+      else if (current_qindex > QINDEX_LARGE_BLOCK_THR + win)
+        weight = 0.0;
+      else
+        weight =
+            1.0 - (current_qindex - QINDEX_LARGE_BLOCK_THR + win) / (2 * win);
+      if (cm->width * cm->height > 640 * 480) {
+        for (int i = 0; i < 4; i++) {
+          thresholds[i] <<= 1;
+        }
+      }
       if (cm->width * cm->height <= 352 * 288) {
         thresholds[1] <<= 2;
         thresholds[2] <<= 5;
         thresholds[3] = INT32_MAX;
-      } else if (cm->width * cm->height > 640 * 480) {
-        thresholds[0] <<= 2;
+        // Condition the increase of partition thresholds on the segment
+        // and the content. Avoid the increase for superblocks which have
+        // high source sad, unless the whole frame has very high motion
+        // (i.e, cpi->rc.avg_source_sad is very large, in which case all blocks
+        // have high source sad).
+      } else if (cm->width * cm->height > 640 * 480 && segment_id == 0 &&
+                 (source_sad != kHighSad || cpi->rc.avg_source_sad > 50000)) {
+        thresholds[0] = (3 * thresholds[0]) >> 1;
         thresholds[3] = INT32_MAX;
-        if (current_qindex >= QINDEX_LARGE_BLOCK_THR) {
-          thresholds[1] <<= 1;
-          thresholds[2] <<= 1;
+        if (current_qindex > QINDEX_LARGE_BLOCK_THR) {
+          thresholds[1] = (int)((1 - weight) * (thresholds[1] << 1) +
+                                weight * thresholds[1]);
+          thresholds[2] = (int)((1 - weight) * (thresholds[2] << 1) +
+                                weight * thresholds[2]);
         }
-      } else if (current_qindex > QINDEX_LARGE_BLOCK_THR) {
-        thresholds[1] <<= 2;
-        thresholds[2] <<= 5;
+      } else if (current_qindex > QINDEX_LARGE_BLOCK_THR && segment_id == 0 &&
+                 (source_sad != kHighSad || cpi->rc.avg_source_sad > 50000)) {
+        thresholds[1] =
+            (int)((1 - weight) * (thresholds[1] << 2) + weight * thresholds[1]);
+        thresholds[2] =
+            (int)((1 - weight) * (thresholds[2] << 4) + weight * thresholds[2]);
         thresholds[3] = INT32_MAX;
       }
     }
@@ -584,7 +636,7 @@ static AOM_INLINE void set_low_temp_var_flag(
         xd->mi[0]->mv[0].as_mv.col > -mv_thr &&
         xd->mi[0]->mv[0].as_mv.row < mv_thr &&
         xd->mi[0]->mv[0].as_mv.row > -mv_thr))) {
-    const int is_small_sb = (cm->seq_params.sb_size == BLOCK_64X64);
+    const int is_small_sb = (cm->seq_params->sb_size == BLOCK_64X64);
     if (is_small_sb)
       set_low_temp_var_flag_64x64(&cm->mi_params, part_info, xd,
                                   &(vt->split[0]), thresholds, mi_col, mi_row);
@@ -595,12 +647,13 @@ static AOM_INLINE void set_low_temp_var_flag(
 }
 
 void av1_set_variance_partition_thresholds(AV1_COMP *cpi, int q,
-                                           int content_state) {
+                                           int content_lowsumdiff) {
   SPEED_FEATURES *const sf = &cpi->sf;
   if (sf->part_sf.partition_search_type != VAR_BASED_PARTITION) {
     return;
   } else {
-    set_vbp_thresholds(cpi, cpi->vbp_info.thresholds, q, content_state);
+    set_vbp_thresholds(cpi, cpi->vbp_info.thresholds, q, content_lowsumdiff, 0,
+                       0);
     // The threshold below is not changed locally.
     cpi->vbp_info.threshold_minmax = 15 + (q >> 3);
   }
@@ -622,10 +675,17 @@ static AOM_INLINE void chroma_check(AV1_COMP *cpi, MACROBLOCK *x,
         get_plane_block_size(bsize, pd->subsampling_x, pd->subsampling_y);
 
     if (bs != BLOCK_INVALID)
-      uv_sad = cpi->fn_ptr[bs].sdf(p->src.buf, p->src.stride, pd->dst.buf,
-                                   pd->dst.stride);
+      uv_sad = cpi->ppi->fn_ptr[bs].sdf(p->src.buf, p->src.stride, pd->dst.buf,
+                                        pd->dst.stride);
 
-    x->color_sensitivity[i - 1] = uv_sad > (y_sad >> 2);
+    if (uv_sad > (y_sad >> 1))
+      x->color_sensitivity_sb[i - 1] = 1;
+    else if (uv_sad < (y_sad >> 3))
+      x->color_sensitivity_sb[i - 1] = 0;
+    // Borderline case: to be refined at coding block level in nonrd_pickmode,
+    // for coding block size < sb_size.
+    else
+      x->color_sensitivity_sb[i - 1] = 2;
   }
 }
 
@@ -637,7 +697,7 @@ static void fill_variance_tree_leaves(
   AV1_COMMON *cm = &cpi->common;
   MACROBLOCKD *xd = &x->e_mbd;
   const int is_key_frame = frame_is_intra_only(cm);
-  const int is_small_sb = (cm->seq_params.sb_size == BLOCK_64X64);
+  const int is_small_sb = (cm->seq_params->sb_size == BLOCK_64X64);
   const int num_64x64_blocks = is_small_sb ? 1 : 4;
   // TODO(kyslov) Bring back compute_minmax_variance with content type detection
   const int compute_minmax_variance = 0;
@@ -751,7 +811,7 @@ static void setup_planes(AV1_COMP *cpi, MACROBLOCK *x, unsigned int *y_sad,
   AV1_COMMON *const cm = &cpi->common;
   MACROBLOCKD *xd = &x->e_mbd;
   const int num_planes = av1_num_planes(cm);
-  const int is_small_sb = (cm->seq_params.sb_size == BLOCK_64X64);
+  const int is_small_sb = (cm->seq_params->sb_size == BLOCK_64X64);
   BLOCK_SIZE bsize = is_small_sb ? BLOCK_64X64 : BLOCK_128X128;
   // TODO(kyslov): we are assuming that the ref is LAST_FRAME! Check if it
   // is!!
@@ -762,13 +822,13 @@ static void setup_planes(AV1_COMP *cpi, MACROBLOCK *x, unsigned int *y_sad,
 
   // For non-SVC GOLDEN is another temporal reference. Check if it should be
   // used as reference for partitioning.
-  if (!cpi->use_svc && (cpi->ref_frame_flags & AOM_GOLD_FLAG) &&
+  if (!cpi->ppi->use_svc && (cpi->ref_frame_flags & AOM_GOLD_FLAG) &&
       cpi->sf.rt_sf.use_nonrd_pick_mode) {
     yv12_g = get_ref_frame_yv12_buf(cm, GOLDEN_FRAME);
     if (yv12_g && yv12_g != yv12) {
       av1_setup_pre_planes(xd, 0, yv12_g, mi_row, mi_col,
                            get_ref_scale_factors(cm, GOLDEN_FRAME), num_planes);
-      *y_sad_g = cpi->fn_ptr[bsize].sdf(
+      *y_sad_g = cpi->ppi->fn_ptr[bsize].sdf(
           x->plane[0].src.buf, x->plane[0].src.stride, xd->plane[0].pre[0].buf,
           xd->plane[0].pre[0].stride);
     }
@@ -778,20 +838,20 @@ static void setup_planes(AV1_COMP *cpi, MACROBLOCK *x, unsigned int *y_sad,
                        get_ref_scale_factors(cm, LAST_FRAME), num_planes);
   mi->ref_frame[0] = LAST_FRAME;
   mi->ref_frame[1] = NONE_FRAME;
-  mi->bsize = cm->seq_params.sb_size;
+  mi->bsize = cm->seq_params->sb_size;
   mi->mv[0].as_int = 0;
   mi->interp_filters = av1_broadcast_interp_filter(BILINEAR);
   if (cpi->sf.rt_sf.estimate_motion_for_var_based_partition) {
     if (xd->mb_to_right_edge >= 0 && xd->mb_to_bottom_edge >= 0) {
       const MV dummy_mv = { 0, 0 };
-      *y_sad = av1_int_pro_motion_estimation(cpi, x, cm->seq_params.sb_size,
+      *y_sad = av1_int_pro_motion_estimation(cpi, x, cm->seq_params->sb_size,
                                              mi_row, mi_col, &dummy_mv);
     }
   }
   if (*y_sad == UINT_MAX) {
-    *y_sad = cpi->fn_ptr[bsize].sdf(x->plane[0].src.buf, x->plane[0].src.stride,
-                                    xd->plane[0].pre[0].buf,
-                                    xd->plane[0].pre[0].stride);
+    *y_sad = cpi->ppi->fn_ptr[bsize].sdf(
+        x->plane[0].src.buf, x->plane[0].src.stride, xd->plane[0].pre[0].buf,
+        xd->plane[0].pre[0].stride);
   }
 
   // Pick the ref frame for partitioning, use golden frame only if its
@@ -812,7 +872,7 @@ static void setup_planes(AV1_COMP *cpi, MACROBLOCK *x, unsigned int *y_sad,
 
   set_ref_ptrs(cm, xd, mi->ref_frame[0], mi->ref_frame[1]);
   av1_enc_build_inter_predictor(cm, xd, mi_row, mi_col, NULL,
-                                cm->seq_params.sb_size, AOM_PLANE_Y,
+                                cm->seq_params->sb_size, AOM_PLANE_Y,
                                 AOM_PLANE_Y);
 }
 
@@ -827,7 +887,6 @@ int av1_choose_var_based_partitioning(AV1_COMP *cpi, const TileInfo *const tile,
   VP128x128 *vt;
   VP16x16 *vt2 = NULL;
   unsigned char force_split[85];
-  int avg_32x32;
   int avg_64x64;
   int max_var_32x32[4];
   int min_var_32x32[4];
@@ -839,20 +898,20 @@ int av1_choose_var_based_partitioning(AV1_COMP *cpi, const TileInfo *const tile,
   int maxvar_16x16[4][4];
   int minvar_16x16[4][4];
   int64_t threshold_4x4avg;
-  int content_state = 0;
   uint8_t *s;
   const uint8_t *d;
   int sp;
   int dp;
+  NOISE_LEVEL noise_level = kLow;
 
   int is_key_frame =
       (frame_is_intra_only(cm) ||
-       (cpi->use_svc &&
+       (cpi->ppi->use_svc &&
         cpi->svc.layer_context[cpi->svc.temporal_layer_id].is_key_frame));
 
-  assert(cm->seq_params.sb_size == BLOCK_64X64 ||
-         cm->seq_params.sb_size == BLOCK_128X128);
-  const int is_small_sb = (cm->seq_params.sb_size == BLOCK_64X64);
+  assert(cm->seq_params->sb_size == BLOCK_64X64 ||
+         cm->seq_params->sb_size == BLOCK_128X128);
+  const int is_small_sb = (cm->seq_params->sb_size == BLOCK_64X64);
   const int num_64x64_blocks = is_small_sb ? 1 : 4;
 
   unsigned int y_sad = UINT_MAX;
@@ -861,7 +920,6 @@ int av1_choose_var_based_partitioning(AV1_COMP *cpi, const TileInfo *const tile,
 
   // Ref frame used in partitioning.
   MV_REFERENCE_FRAME ref_frame_partition = LAST_FRAME;
-  NOISE_LEVEL noise_level = kLow;
 
   CHECK_MEM_ERROR(cm, vt, aom_malloc(sizeof(*vt)));
 
@@ -879,10 +937,12 @@ int av1_choose_var_based_partitioning(AV1_COMP *cpi, const TileInfo *const tile,
       cyclic_refresh_segment_id_boosted(segment_id) &&
       cpi->sf.rt_sf.use_nonrd_pick_mode) {
     int q = av1_get_qindex(&cm->seg, segment_id, cm->quant_params.base_qindex);
-    set_vbp_thresholds(cpi, thresholds, q, content_state);
+    set_vbp_thresholds(cpi, thresholds, q, x->content_state_sb.low_sumdiff,
+                       x->content_state_sb.source_sad, 1);
   } else {
     set_vbp_thresholds(cpi, thresholds, cm->quant_params.base_qindex,
-                       content_state);
+                       x->content_state_sb.low_sumdiff,
+                       x->content_state_sb.source_sad, 0);
   }
 
   // For non keyframes, disable 4x4 average for low resolution when speed = 8
@@ -921,6 +981,8 @@ int av1_choose_var_based_partitioning(AV1_COMP *cpi, const TileInfo *const tile,
     d = AV1_VAR_OFFS;
     dp = 0;
   }
+  if (cpi->noise_estimate.enabled)
+    noise_level = av1_noise_estimate_extract_level(&cpi->noise_estimate);
 
   if (low_res && threshold_4x4avg < INT64_MAX)
     CHECK_MEM_ERROR(cm, vt2, aom_malloc(sizeof(*vt2)));
@@ -930,13 +992,8 @@ int av1_choose_var_based_partitioning(AV1_COMP *cpi, const TileInfo *const tile,
                             maxvar_16x16, minvar_16x16, variance4x4downsample,
                             thresholds, s, sp, d, dp);
 
-  // Fill the rest of the variance tree by summing split partition values.
-  if (cpi->noise_estimate.enabled)
-    noise_level = av1_noise_estimate_extract_level(&cpi->noise_estimate);
-
   avg_64x64 = 0;
   for (m = 0; m < num_64x64_blocks; ++m) {
-    avg_32x32 = 0;
     max_var_32x32[m] = 0;
     min_var_32x32[m] = INT_MAX;
     const int m2 = m << 2;
@@ -981,10 +1038,7 @@ int av1_choose_var_based_partitioning(AV1_COMP *cpi, const TileInfo *const tile,
           force_split[5 + m2 + i] = 1;
           force_split[m + 1] = 1;
           force_split[0] = 1;
-        } else if (!is_key_frame &&
-                   (!cpi->noise_estimate.enabled ||
-                    (cpi->noise_estimate.enabled && noise_level < kLow)) &&
-                   cm->height <= 360 &&
+        } else if (!is_key_frame && cm->height <= 360 &&
                    (maxvar_16x16[m][i] - minvar_16x16[m][i]) >
                        (thresholds[2] >> 1) &&
                    maxvar_16x16[m][i] > thresholds[2]) {
@@ -992,7 +1046,6 @@ int av1_choose_var_based_partitioning(AV1_COMP *cpi, const TileInfo *const tile,
           force_split[m + 1] = 1;
           force_split[0] = 1;
         }
-        avg_32x32 += var_32x32;
       }
     }
     if (!force_split[1 + m]) {
@@ -1001,14 +1054,20 @@ int av1_choose_var_based_partitioning(AV1_COMP *cpi, const TileInfo *const tile,
       var_64x64 = vt->split[m].part_variances.none.variance;
       max_var_64x64 = AOMMAX(var_64x64, max_var_64x64);
       min_var_64x64 = AOMMIN(var_64x64, min_var_64x64);
-      // If variance of this 64x64 block is above (some threshold of) the
-      // average variance over the sub-32x32 blocks, then force this block to
-      // split. Only checking this for noise level >= medium for now.
+      // If the difference of the max-min variances of sub-blocks or max
+      // variance of a sub-block is above some threshold of then force this
+      // block to split. Only checking this for noise level >= medium, if
+      // encoder is in SVC or if we already forced large blocks.
 
       if (!is_key_frame &&
           (max_var_32x32[m] - min_var_32x32[m]) > 3 * (thresholds[1] >> 3) &&
-          max_var_32x32[m] > thresholds[1] >> 1)
+          max_var_32x32[m] > thresholds[1] >> 1 &&
+          (noise_level >= kMedium || cpi->ppi->use_svc ||
+           cpi->sf.rt_sf.force_large_partition_blocks ||
+           !cpi->sf.rt_sf.use_nonrd_pick_mode)) {
         force_split[1 + m] = 1;
+        force_split[0] = 1;
+      }
       avg_64x64 += var_64x64;
     }
     if (is_small_sb) force_split[0] = 1;
@@ -1018,8 +1077,6 @@ int av1_choose_var_based_partitioning(AV1_COMP *cpi, const TileInfo *const tile,
     fill_variance_tree(vt, BLOCK_128X128);
     get_variance(&vt->part_variances.none);
     if (!is_key_frame &&
-        (!cpi->noise_estimate.enabled ||
-         (cpi->noise_estimate.enabled && noise_level >= kMedium)) &&
         vt->part_variances.none.variance > (9 * avg_64x64) >> 5)
       force_split[0] = 1;
 

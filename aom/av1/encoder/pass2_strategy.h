@@ -19,6 +19,8 @@ extern "C" {
 struct AV1_COMP;
 struct EncodeFrameParams;
 
+#include "av1/encoder/encoder.h"
+
 /*!\endcond */
 /*!
  * \brief accumulated stats and features in a gf group
@@ -40,10 +42,7 @@ typedef struct {
   double abs_mv_in_out_accumulator;
 
   double avg_sr_coded_error;
-  double avg_tr_coded_error;
   double avg_pcnt_second_ref;
-  double avg_pcnt_third_ref;
-  double avg_pcnt_third_ref_nolast;
   double avg_new_mv_count;
   double avg_wavelet_energy;
   double avg_raw_err_stdev;
@@ -59,7 +58,6 @@ typedef struct {
   double frame_err;
   double frame_coded_error;
   double frame_sr_coded_error;
-  double frame_tr_coded_error;
   /*!\endcond */
 } GF_FRAME_STATS;
 /*!cond */

@@ -17,7 +17,6 @@
 #include "config/aom_dsp_rtcd.h"
 
 #include "test/acm_random.h"
-#include "test/clear_system_state.h"
 #include "test/register_state_check.h"
 #include "test/util.h"
 #include "av1/common/blockd.h"
@@ -199,7 +198,7 @@ class HighbdIntraPredTest : public AV1IntraPredTest<HighbdIntraPred, uint16_t> {
   void Predict() {
     const int bit_depth = params_.bit_depth;
     params_.ref_fn(ref_dst_, stride_, above_row_, left_col_, bit_depth);
-    ASM_REGISTER_STATE_CHECK(
+    API_REGISTER_STATE_CHECK(
         params_.pred_fn(dst_, stride_, above_row_, left_col_, bit_depth));
   }
   void PredictRefSpeedTest(int num) {
@@ -223,7 +222,7 @@ class LowbdIntraPredTest : public AV1IntraPredTest<IntraPred, uint8_t> {
  protected:
   void Predict() {
     params_.ref_fn(ref_dst_, stride_, above_row_, left_col_);
-    ASM_REGISTER_STATE_CHECK(
+    API_REGISTER_STATE_CHECK(
         params_.pred_fn(dst_, stride_, above_row_, left_col_));
   }
   void PredictRefSpeedTest(int num) {
@@ -324,15 +323,17 @@ INSTANTIATE_TEST_SUITE_P(SSE2, LowbdIntraPredTest,
 #if HAVE_NEON
 const IntraPredFunc<IntraPred> LowbdIntraPredTestVectorNeon[] = {
   lowbd_entry(smooth, 4, 4, neon),   lowbd_entry(smooth, 4, 8, neon),
-  lowbd_entry(smooth, 4, 16, neon),  lowbd_entry(smooth, 8, 4, neon),
-  lowbd_entry(smooth, 8, 8, neon),   lowbd_entry(smooth, 8, 16, neon),
-  lowbd_entry(smooth, 8, 32, neon),  lowbd_entry(smooth, 16, 4, neon),
-  lowbd_entry(smooth, 16, 8, neon),  lowbd_entry(smooth, 16, 16, neon),
-  lowbd_entry(smooth, 16, 32, neon), lowbd_entry(smooth, 16, 64, neon),
-  lowbd_entry(smooth, 32, 8, neon),  lowbd_entry(smooth, 32, 16, neon),
-  lowbd_entry(smooth, 32, 32, neon), lowbd_entry(smooth, 32, 64, neon),
-  lowbd_entry(smooth, 64, 16, neon), lowbd_entry(smooth, 64, 32, neon),
-  lowbd_entry(smooth, 64, 64, neon)
+  lowbd_entry(smooth, 8, 4, neon),   lowbd_entry(smooth, 8, 8, neon),
+  lowbd_entry(smooth, 8, 16, neon),  lowbd_entry(smooth, 16, 8, neon),
+  lowbd_entry(smooth, 16, 16, neon), lowbd_entry(smooth, 16, 32, neon),
+  lowbd_entry(smooth, 32, 16, neon), lowbd_entry(smooth, 32, 32, neon),
+  lowbd_entry(smooth, 32, 64, neon), lowbd_entry(smooth, 64, 32, neon),
+  lowbd_entry(smooth, 64, 64, neon),
+#if !CONFIG_REALTIME_ONLY
+  lowbd_entry(smooth, 4, 16, neon),  lowbd_entry(smooth, 8, 32, neon),
+  lowbd_entry(smooth, 16, 4, neon),  lowbd_entry(smooth, 16, 64, neon),
+  lowbd_entry(smooth, 32, 8, neon),  lowbd_entry(smooth, 64, 16, neon),
+#endif
 };
 INSTANTIATE_TEST_SUITE_P(NEON, LowbdIntraPredTest,
                          ::testing::ValuesIn(LowbdIntraPredTestVectorNeon));

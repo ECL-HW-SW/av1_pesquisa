@@ -50,7 +50,11 @@ aom_codec_err_t aom_codec_enc_init_ver(aom_codec_ctx_t *ctx,
     res = AOM_CODEC_INCAPABLE;
   else if ((flags & AOM_CODEC_USE_PSNR) && !(iface->caps & AOM_CODEC_CAP_PSNR))
     res = AOM_CODEC_INCAPABLE;
-  else {
+  else if (cfg->g_bit_depth > 8 && (flags & AOM_CODEC_USE_HIGHBITDEPTH) == 0) {
+    res = AOM_CODEC_INVALID_PARAM;
+    ctx->err_detail =
+        "High bit-depth used without the AOM_CODEC_USE_HIGHBITDEPTH flag.";
+  } else {
     ctx->iface = iface;
     ctx->name = iface->name;
     ctx->priv = NULL;
@@ -152,8 +156,9 @@ aom_codec_err_t aom_codec_encode(aom_codec_ctx_t *ctx, const aom_image_t *img,
      * requires it.
      */
     FLOATING_POINT_INIT
-    // @grellert - aqui chama encode
-    res = ctx->iface->enc.encode(get_alg_priv(ctx), img, pts, duration, flags, ctx->ecl_timers);
+    /* @grellert - aqui chama encode ctx->ecl_timers */
+    res = ctx->iface->enc.encode(get_alg_priv(ctx), img, pts, duration, flags,
+                                 ctx->ecl_timers);
     FLOATING_POINT_RESTORE
   }
 

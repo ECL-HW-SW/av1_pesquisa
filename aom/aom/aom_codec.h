@@ -99,6 +99,7 @@ extern "C" {
 
 #include "aom/aom_image.h"
 #include "aom/aom_integer.h"
+
 /*!\brief Decorator indicating a function is deprecated */
 #ifndef AOM_DEPRECATED
 #if defined(__GNUC__) && __GNUC__
@@ -148,7 +149,7 @@ extern "C" {
  * types, removing or reassigning enums, adding/removing/rearranging
  * fields to structures
  */
-#define AOM_CODEC_ABI_VERSION (5 + AOM_IMAGE_ABI_VERSION) /**<\hideinitializer*/
+#define AOM_CODEC_ABI_VERSION (7 + AOM_IMAGE_ABI_VERSION) /**<\hideinitializer*/
 
 /*!\brief Algorithm return codes */
 typedef enum {
@@ -294,6 +295,7 @@ typedef const void *aom_codec_iter_t;
  * may reference the 'name' member to get a printable description of the
  * algorithm.
  */
+
 #include <time.h>
 
 // @grellert ECL timers
@@ -330,8 +332,8 @@ typedef struct aom_codec_ctx {
     const void *raw;
   } config;               /**< Configuration pointer aliasing union */
   aom_codec_priv_t *priv; /**< Algorithm private storage */
-  ECLTimers *ecl_timers;
 
+  ECLTimers *ecl_timers;  //@grellert
 } aom_codec_ctx_t;
 
 /*!\brief Bit depth for codec
@@ -512,6 +514,26 @@ aom_codec_caps_t aom_codec_get_caps(aom_codec_iface_t *iface);
  *     The data was not valid.
  */
 aom_codec_err_t aom_codec_control(aom_codec_ctx_t *ctx, int ctrl_id, ...);
+
+/*!\brief Key & Value API
+ *
+ * aom_codec_set_option() takes a context, a key (option name) and a value. If
+ * the context is non-null and an error occurs, ctx->err will be set to the same
+ * value as the return value.
+ *
+ * \param[in]     ctx              Pointer to this instance's context
+ * \param[in]     name             The name of the option (key)
+ * \param[in]     value            The value of the option
+ *
+ * \retval #AOM_CODEC_OK
+ *     The value of the option was set.
+ * \retval #AOM_CODEC_INVALID_PARAM
+ *     The data was not valid.
+ * \retval #AOM_CODEC_ERROR
+ *     The option was not successfully set.
+ */
+aom_codec_err_t aom_codec_set_option(aom_codec_ctx_t *ctx, const char *name,
+                                     const char *value);
 
 /*!\brief aom_codec_control wrapper macro (adds type-checking, less flexible)
  *

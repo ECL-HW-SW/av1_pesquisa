@@ -37,12 +37,10 @@ struct EncodeFrameParams;
  * cpi->twopass.gf_group.update_type[].
  *
  * \param[in]    cpi          Top - level encoder instance structure
- * \param[in]    frame_params Per-frame encoding parameters
  *
  * \return No return value but this function updates group data structures.
  */
-void av1_gop_setup_structure(
-    struct AV1_COMP *cpi, const struct EncodeFrameParams *const frame_params);
+void av1_gop_setup_structure(struct AV1_COMP *cpi);
 
 /*!\brief Distributes bits to frames in a group
  *
@@ -68,10 +66,12 @@ void av1_gop_bit_allocation(const AV1_COMP *cpi, RATE_CONTROL *const rc,
                             int64_t gf_group_bits);
 
 /*!\cond */
-int av1_calc_arf_boost(const TWO_PASS *twopass, const RATE_CONTROL *rc,
-                       FRAME_INFO *frame_info, int offset, int f_frames,
-                       int b_frames, int *num_fpstats_used,
-                       int *num_fpstats_required);
+int av1_calc_arf_boost(const TWO_PASS *twopass,
+                       const TWO_PASS_FRAME *twopass_frame,
+                       const PRIMARY_RATE_CONTROL *p_rc, FRAME_INFO *frame_info,
+                       int offset, int f_frames, int b_frames,
+                       int *num_fpstats_used, int *num_fpstats_required,
+                       int project_gfu_boost);
 /*!\endcond */
 
 #ifdef __cplusplus

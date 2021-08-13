@@ -26,14 +26,8 @@ struct PICK_MODE_CONTEXT;
 struct macroblock;
 
 /*!\cond */
-#define AV1_K_MEANS_RENAME(func, dim) func##_dim##dim
+#define AV1_K_MEANS_RENAME(func, dim) func##_dim##dim##_c
 
-void AV1_K_MEANS_RENAME(av1_calc_indices, 1)(const int *data,
-                                             const int *centroids,
-                                             uint8_t *indices, int n, int k);
-void AV1_K_MEANS_RENAME(av1_calc_indices, 2)(const int *data,
-                                             const int *centroids,
-                                             uint8_t *indices, int n, int k);
 void AV1_K_MEANS_RENAME(av1_k_means, 1)(const int *data, int *centroids,
                                         uint8_t *indices, int n, int k,
                                         int max_itr);
@@ -62,9 +56,9 @@ static INLINE void av1_calc_indices(const int *data, const int *centroids,
   assert(n > 0);
   assert(k > 0);
   if (dim == 1) {
-    AV1_K_MEANS_RENAME(av1_calc_indices, 1)(data, centroids, indices, n, k);
+    av1_calc_indices_dim1(data, centroids, indices, n, k);
   } else if (dim == 2) {
-    AV1_K_MEANS_RENAME(av1_calc_indices, 2)(data, centroids, indices, n, k);
+    av1_calc_indices_dim2(data, centroids, indices, n, k);
   } else {
     assert(0 && "Untemplated k means dimension");
   }
@@ -191,10 +185,9 @@ int av1_palette_color_cost_uv(const PALETTE_MODE_INFO *const pmi,
 void av1_rd_pick_palette_intra_sby(
     const struct AV1_COMP *cpi, struct macroblock *x, BLOCK_SIZE bsize,
     int dc_mode_cost, MB_MODE_INFO *best_mbmi, uint8_t *best_palette_color_map,
-    int64_t *best_rd, int64_t *best_model_rd, int *rate, int *rate_tokenonly,
-    int64_t *distortion, int *skippable, int *beat_best_rd,
-    struct PICK_MODE_CONTEXT *ctx, uint8_t *best_blk_skip,
-    uint8_t *tx_type_map);
+    int64_t *best_rd, int *rate, int *rate_tokenonly, int64_t *distortion,
+    int *skippable, int *beat_best_rd, struct PICK_MODE_CONTEXT *ctx,
+    uint8_t *best_blk_skip, uint8_t *tx_type_map);
 
 /*!\brief Search for the best palette in the chroma plane.
  *

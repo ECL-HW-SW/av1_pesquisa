@@ -103,8 +103,7 @@ class InvalidFileTest : public ::libaom_test::DecoderTest,
     const DecodeParam input = GET_PARAM(1);
     aom_codec_dec_cfg_t cfg = { 0, 0, 0, !FORCE_HIGHBITDEPTH_DECODING };
     cfg.threads = input.threads;
-    const std::string filename = input.filename;
-    libaom_test::IVFVideoSource decode_video(filename);
+    libaom_test::IVFVideoSource decode_video(input.filename);
     decode_video.Init();
 
     // The result file holds a list of expected integer results, one for each
@@ -133,7 +132,7 @@ const DecodeParam kAV1InvalidFileTests[] = {
   { 1, "invalid-google-142530197-1.ivf", NULL },
   { 4, "invalid-oss-fuzz-9463.ivf", "invalid-oss-fuzz-9463.ivf.res.2" },
   { 1, "invalid-oss-fuzz-9720.ivf", NULL },
-  { 1, "invalid-oss-fuzz-10389.ivf", "invalid-oss-fuzz-10389.ivf.res.3" },
+  { 1, "invalid-oss-fuzz-10389.ivf", "invalid-oss-fuzz-10389.ivf.res.4" },
   { 1, "invalid-oss-fuzz-11523.ivf", "invalid-oss-fuzz-11523.ivf.res.2" },
   { 4, "invalid-oss-fuzz-15363.ivf", NULL },
   { 1, "invalid-oss-fuzz-16437.ivf", "invalid-oss-fuzz-16437.ivf.res.2" },
@@ -151,6 +150,7 @@ const DecodeParam kAV1InvalidFileTests[] = {
   { 1, "invalid-oss-fuzz-10779.ivf", NULL },
   { 1, "invalid-oss-fuzz-11477.ivf", NULL },
   { 1, "invalid-oss-fuzz-11479.ivf", "invalid-oss-fuzz-11479.ivf.res.2" },
+  { 1, "invalid-oss-fuzz-33030.ivf", NULL },
 #endif
 };
 

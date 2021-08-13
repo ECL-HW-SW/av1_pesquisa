@@ -33,10 +33,8 @@ void av1_nn_predict_c(const float *input_nodes,
   int num_input_nodes = nn_config->num_inputs;
   int buf_index = 0;
   float buf[2][NN_MAX_NODES_PER_LAYER];
-  FILE *ml_bias = fopen("aom/output_files/bias.csv", "a");
-  FILE *ml_weights = fopen("aom/output_files/weights.csv", "a");
+
   // Propagate hidden layers.
-  // Feed-forward NNs
   const int num_layers = nn_config->num_hidden_layers;
   assert(num_layers <= NN_MAX_HIDDEN_LAYERS);
   for (int layer = 0; layer < num_layers; ++layer) {
@@ -47,27 +45,11 @@ void av1_nn_predict_c(const float *input_nodes,
     assert(num_output_nodes < NN_MAX_NODES_PER_LAYER);
     for (int node = 0; node < num_output_nodes; ++node) {
       float val = layer_bias[node];
-
-      if (num_input_nodes == 17) {
-        fprintf(ml_bias, "%f;,;", val);
-      }
-      for (int i = 0; i < num_input_nodes; ++i) {
-        if (num_input_nodes == 17) {
-          float val_w = layer_weights[node * num_input_nodes + i];
-          fprintf(ml_weights, "%f;,;", val_w);
-        }
+      for (int i = 0; i < num_input_nodes; ++i)
         val += layer_weights[node * num_input_nodes + i] * input_nodes[i];
-      }
       // ReLU as activation function.
       val = val > 0.0f ? val : 0.0f;  // Could use AOMMAX().
       output_nodes[node] = val;
-    }
-    if (num_input_nodes == 17) {
-      fprintf(ml_bias, "\n");
-      fprintf(ml_weights, "\n");
-
-      fclose(ml_bias);
-      fclose(ml_weights);
     }
     num_input_nodes = num_output_nodes;
     input_nodes = output_nodes;
@@ -161,14 +143,44 @@ void av1_nn_softmax(const float *input, float *output, int n) {
   // Softmax function is invariant to adding the same constant
   // to all input values, so we subtract the maximum input to avoid
   // possible overflow.
-  float max_inp = input[0];
-  for (int i = 1; i < n; i++) max_inp = AOMMAX(max_inp, input[i]);
+  float max_input = input[0];
+  for (int i = 1; i < n; i++) max_input = AOMMAX(max_input, input[i]);
   float sum_out = 0.0f;
   for (int i = 0; i < n; i++) {
     // Clamp to range [-10.0, 0.0] to prevent FE_UNDERFLOW errors.
-    const float normalized_input = AOMMAX(input[i] - max_inp, -10.0f);
-    output[i] = (float)exp(normalized_input);
+    const float normalized_input = AOMMAX(input[i] - max_input, -10.0f);
+    output[i] = expf(normalized_input);
     sum_out += output[i];
   }
   for (int i = 0; i < n; i++) output[i] /= sum_out;
+}
+
+static AOM_INLINE float approx_exp(float y) {
+#define A ((1 << 23) / 0.69314718056f)  // (1 << 23) / ln(2)
+#define B \
+  127  // Offset for the exponent according to IEEE floating point standard.
+#define C 60801  // Magic number controls the accuracy of approximation
+  union {
+    float as_float;
+    int32_t as_int32;
+  } container;
+  container.as_int32 = ((int32_t)(y * A)) + ((B << 23) - C);
+  return container.as_float;
+#undef A
+#undef B
+#undef C
+}
+
+void av1_nn_fast_softmax_16_c(const float *input, float *output) {
+  const int kNumClasses = 16;
+  float max_input = input[0];
+  for (int i = 1; i < kNumClasses; i++) max_input = AOMMAX(max_input, input[i]);
+  float sum_out = 0.0f;
+  for (int i = 0; i < kNumClasses; i++) {
+    // Clamp to range [-10.0, 0.0] to prevent FE_UNDERFLOW errors.
+    const float normalized_input = AOMMAX(input[i] - max_input, -10.0f);
+    output[i] = approx_exp(normalized_input);
+    sum_out += output[i];
+  }
+  for (int i = 0; i < kNumClasses; i++) output[i] /= sum_out;
 }

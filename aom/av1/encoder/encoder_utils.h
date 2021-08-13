@@ -73,10 +73,6 @@ static AOM_INLINE void set_mb_mi(CommonModeInfoParams *mi_params, int width,
 
   assert(mi_size_wide[mi_params->mi_alloc_bsize] ==
          mi_size_high[mi_params->mi_alloc_bsize]);
-
-#if CONFIG_LPF_MASK
-  av1_alloc_loop_filter_mask(mi_params);
-#endif
 }
 
 static AOM_INLINE void enc_free_mi(CommonModeInfoParams *mi_params) {
@@ -125,14 +121,14 @@ static AOM_INLINE void init_buffer_indices(
 }
 
 #define HIGHBD_BFP(BT, SDF, SDAF, VF, SVF, SVAF, SDX4DF, JSDAF, JSVAF) \
-  cpi->fn_ptr[BT].sdf = SDF;                                           \
-  cpi->fn_ptr[BT].sdaf = SDAF;                                         \
-  cpi->fn_ptr[BT].vf = VF;                                             \
-  cpi->fn_ptr[BT].svf = SVF;                                           \
-  cpi->fn_ptr[BT].svaf = SVAF;                                         \
-  cpi->fn_ptr[BT].sdx4df = SDX4DF;                                     \
-  cpi->fn_ptr[BT].jsdaf = JSDAF;                                       \
-  cpi->fn_ptr[BT].jsvaf = JSVAF;
+  ppi->fn_ptr[BT].sdf = SDF;                                           \
+  ppi->fn_ptr[BT].sdaf = SDAF;                                         \
+  ppi->fn_ptr[BT].vf = VF;                                             \
+  ppi->fn_ptr[BT].svf = SVF;                                           \
+  ppi->fn_ptr[BT].svaf = SVAF;                                         \
+  ppi->fn_ptr[BT].sdx4df = SDX4DF;                                     \
+  ppi->fn_ptr[BT].jsdaf = JSDAF;                                       \
+  ppi->fn_ptr[BT].jsvaf = JSVAF;
 
 #define HIGHBD_BFP_WRAPPER(WIDTH, HEIGHT, BD)                                \
   HIGHBD_BFP(                                                                \
@@ -277,6 +273,7 @@ MAKE_BFP_SAD_WRAPPER(aom_highbd_sad4x4)
 MAKE_BFP_SADAVG_WRAPPER(aom_highbd_sad4x4_avg)
 MAKE_BFP_SAD4D_WRAPPER(aom_highbd_sad4x4x4d)
 
+#if !CONFIG_REALTIME_ONLY
 MAKE_BFP_SAD_WRAPPER(aom_highbd_sad4x16)
 MAKE_BFP_SADAVG_WRAPPER(aom_highbd_sad4x16_avg)
 MAKE_BFP_SAD4D_WRAPPER(aom_highbd_sad4x16x4d)
@@ -295,6 +292,7 @@ MAKE_BFP_SAD4D_WRAPPER(aom_highbd_sad16x64x4d)
 MAKE_BFP_SAD_WRAPPER(aom_highbd_sad64x16)
 MAKE_BFP_SADAVG_WRAPPER(aom_highbd_sad64x16_avg)
 MAKE_BFP_SAD4D_WRAPPER(aom_highbd_sad64x16x4d)
+#endif
 
 MAKE_BFP_JSADAVG_WRAPPER(aom_highbd_dist_wtd_sad128x128_avg)
 MAKE_BFP_JSADAVG_WRAPPER(aom_highbd_dist_wtd_sad128x64_avg)
@@ -312,31 +310,24 @@ MAKE_BFP_JSADAVG_WRAPPER(aom_highbd_dist_wtd_sad8x8_avg)
 MAKE_BFP_JSADAVG_WRAPPER(aom_highbd_dist_wtd_sad8x4_avg)
 MAKE_BFP_JSADAVG_WRAPPER(aom_highbd_dist_wtd_sad4x8_avg)
 MAKE_BFP_JSADAVG_WRAPPER(aom_highbd_dist_wtd_sad4x4_avg)
+#if !CONFIG_REALTIME_ONLY
 MAKE_BFP_JSADAVG_WRAPPER(aom_highbd_dist_wtd_sad4x16_avg)
 MAKE_BFP_JSADAVG_WRAPPER(aom_highbd_dist_wtd_sad16x4_avg)
 MAKE_BFP_JSADAVG_WRAPPER(aom_highbd_dist_wtd_sad8x32_avg)
 MAKE_BFP_JSADAVG_WRAPPER(aom_highbd_dist_wtd_sad32x8_avg)
 MAKE_BFP_JSADAVG_WRAPPER(aom_highbd_dist_wtd_sad16x64_avg)
 MAKE_BFP_JSADAVG_WRAPPER(aom_highbd_dist_wtd_sad64x16_avg)
+#endif
 #endif  // CONFIG_AV1_HIGHBITDEPTH
 
 #define HIGHBD_MBFP(BT, MCSDF, MCSVF) \
-  cpi->fn_ptr[BT].msdf = MCSDF;       \
-  cpi->fn_ptr[BT].msvf = MCSVF;
+  ppi->fn_ptr[BT].msdf = MCSDF;       \
+  ppi->fn_ptr[BT].msvf = MCSVF;
 
 #define HIGHBD_MBFP_WRAPPER(WIDTH, HEIGHT, BD)                    \
   HIGHBD_MBFP(BLOCK_##WIDTH##X##HEIGHT,                           \
               aom_highbd_masked_sad##WIDTH##x##HEIGHT##_bits##BD, \
               aom_highbd_##BD##_masked_sub_pixel_variance##WIDTH##x##HEIGHT)
-
-#define HIGHBD_SDSFP(BT, SDSF, SDSX4DF) \
-  cpi->fn_ptr[BT].sdsf = SDSF;          \
-  cpi->fn_ptr[BT].sdsx4df = SDSX4DF;
-
-#define HIGHBD_SDSFP_WRAPPER(WIDTH, HEIGHT)            \
-  HIGHBD_SDSFP(BLOCK_##WIDTH##X##HEIGHT,               \
-               aom_highbd_sad_skip_##WIDTH##x##HEIGHT, \
-               aom_highbd_sad_skip_##WIDTH##x##HEIGHT##x4d)
 
 #define MAKE_MBFP_COMPOUND_SAD_WRAPPER(fnname)                           \
   static unsigned int fnname##_bits8(                                    \
@@ -380,6 +371,7 @@ MAKE_MBFP_COMPOUND_SAD_WRAPPER(aom_highbd_masked_sad8x8)
 MAKE_MBFP_COMPOUND_SAD_WRAPPER(aom_highbd_masked_sad8x4)
 MAKE_MBFP_COMPOUND_SAD_WRAPPER(aom_highbd_masked_sad4x8)
 MAKE_MBFP_COMPOUND_SAD_WRAPPER(aom_highbd_masked_sad4x4)
+#if !CONFIG_REALTIME_ONLY
 MAKE_MBFP_COMPOUND_SAD_WRAPPER(aom_highbd_masked_sad4x16)
 MAKE_MBFP_COMPOUND_SAD_WRAPPER(aom_highbd_masked_sad16x4)
 MAKE_MBFP_COMPOUND_SAD_WRAPPER(aom_highbd_masked_sad8x32)
@@ -387,23 +379,119 @@ MAKE_MBFP_COMPOUND_SAD_WRAPPER(aom_highbd_masked_sad32x8)
 MAKE_MBFP_COMPOUND_SAD_WRAPPER(aom_highbd_masked_sad16x64)
 MAKE_MBFP_COMPOUND_SAD_WRAPPER(aom_highbd_masked_sad64x16)
 #endif
+#endif
+
+#define HIGHBD_SDSFP(BT, SDSF, SDSX4DF) \
+  ppi->fn_ptr[BT].sdsf = SDSF;          \
+  ppi->fn_ptr[BT].sdsx4df = SDSX4DF;
+
+#define HIGHBD_SDSFP_WRAPPER(WIDTH, HEIGHT, BD)                   \
+  HIGHBD_SDSFP(BLOCK_##WIDTH##X##HEIGHT,                          \
+               aom_highbd_sad_skip_##WIDTH##x##HEIGHT##_bits##BD, \
+               aom_highbd_sad_skip_##WIDTH##x##HEIGHT##x4d##_bits##BD)
+
+#define MAKE_SDSF_SKIP_SAD_WRAPPER(fnname)                                  \
+  static unsigned int fnname##_bits8(const uint8_t *src, int src_stride,    \
+                                     const uint8_t *ref, int ref_stride) {  \
+    return fnname(src, src_stride, ref, ref_stride);                        \
+  }                                                                         \
+  static unsigned int fnname##_bits10(const uint8_t *src, int src_stride,   \
+                                      const uint8_t *ref, int ref_stride) { \
+    return fnname(src, src_stride, ref, ref_stride) >> 2;                   \
+  }                                                                         \
+  static unsigned int fnname##_bits12(const uint8_t *src, int src_stride,   \
+                                      const uint8_t *ref, int ref_stride) { \
+    return fnname(src, src_stride, ref, ref_stride) >> 4;                   \
+  }
+
+#define MAKE_SDSF_SKIP_SAD_4D_WRAPPER(fnname)                                 \
+  static void fnname##_bits8(const uint8_t *src_ptr, int source_stride,       \
+                             const uint8_t *const ref_ptr[], int ref_stride,  \
+                             unsigned int *sad_array) {                       \
+    fnname(src_ptr, source_stride, ref_ptr, ref_stride, sad_array);           \
+  }                                                                           \
+  static void fnname##_bits10(const uint8_t *src_ptr, int source_stride,      \
+                              const uint8_t *const ref_ptr[], int ref_stride, \
+                              unsigned int *sad_array) {                      \
+    int i;                                                                    \
+    fnname(src_ptr, source_stride, ref_ptr, ref_stride, sad_array);           \
+    for (i = 0; i < 4; i++) sad_array[i] >>= 2;                               \
+  }                                                                           \
+  static void fnname##_bits12(const uint8_t *src_ptr, int source_stride,      \
+                              const uint8_t *const ref_ptr[], int ref_stride, \
+                              unsigned int *sad_array) {                      \
+    int i;                                                                    \
+    fnname(src_ptr, source_stride, ref_ptr, ref_stride, sad_array);           \
+    for (i = 0; i < 4; i++) sad_array[i] >>= 4;                               \
+  }
+
+#if CONFIG_AV1_HIGHBITDEPTH
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_128x128)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_128x64)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_64x128)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_64x64)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_64x32)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_32x64)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_32x32)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_32x16)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_16x32)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_16x16)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_16x8)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_8x16)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_8x8)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_4x8)
+
+#if !CONFIG_REALTIME_ONLY
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_64x16)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_32x8)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_16x64)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_4x16)
+MAKE_SDSF_SKIP_SAD_WRAPPER(aom_highbd_sad_skip_8x32)
+#endif
+
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_128x128x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_128x64x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_64x128x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_64x64x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_64x32x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_32x64x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_32x32x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_32x16x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_16x32x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_16x16x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_16x8x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_8x16x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_8x8x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_4x8x4d)
+
+#if !CONFIG_REALTIME_ONLY
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_64x16x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_32x8x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_16x64x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_4x16x4d)
+MAKE_SDSF_SKIP_SAD_4D_WRAPPER(aom_highbd_sad_skip_8x32x4d)
+#endif
+#endif
+
+#if !CONFIG_REALTIME_ONLY
+
+#if CONFIG_AV1_HIGHBITDEPTH
+#define HIGHBD_OBFP_WRAPPER_8(WIDTH, HEIGHT)                 \
+  HIGHBD_OBFP(BLOCK_##WIDTH##X##HEIGHT,                      \
+              aom_highbd_obmc_sad##WIDTH##x##HEIGHT##_bits8, \
+              aom_highbd_obmc_variance##WIDTH##x##HEIGHT,    \
+              aom_highbd_obmc_sub_pixel_variance##WIDTH##x##HEIGHT)
 
 #define HIGHBD_OBFP(BT, OSDF, OVF, OSVF) \
-  cpi->fn_ptr[BT].osdf = OSDF;           \
-  cpi->fn_ptr[BT].ovf = OVF;             \
-  cpi->fn_ptr[BT].osvf = OSVF;
+  ppi->fn_ptr[BT].osdf = OSDF;           \
+  ppi->fn_ptr[BT].ovf = OVF;             \
+  ppi->fn_ptr[BT].osvf = OSVF;
 
 #define HIGHBD_OBFP_WRAPPER(WIDTH, HEIGHT, BD)                   \
   HIGHBD_OBFP(BLOCK_##WIDTH##X##HEIGHT,                          \
               aom_highbd_obmc_sad##WIDTH##x##HEIGHT##_bits##BD,  \
               aom_highbd_##BD##_obmc_variance##WIDTH##x##HEIGHT, \
               aom_highbd_##BD##_obmc_sub_pixel_variance##WIDTH##x##HEIGHT)
-
-#define LOWBD_OBFP_WRAPPER(WIDTH, HEIGHT)                    \
-  HIGHBD_OBFP(BLOCK_##WIDTH##X##HEIGHT,                      \
-              aom_highbd_obmc_sad##WIDTH##x##HEIGHT##_bits8, \
-              aom_highbd_obmc_variance##WIDTH##x##HEIGHT,    \
-              aom_highbd_obmc_sub_pixel_variance##WIDTH##x##HEIGHT)
 
 #define MAKE_OBFP_SAD_WRAPPER(fnname)                                     \
   static unsigned int fnname##_bits8(const uint8_t *ref, int ref_stride,  \
@@ -421,8 +509,11 @@ MAKE_MBFP_COMPOUND_SAD_WRAPPER(aom_highbd_masked_sad64x16)
                                       const int32_t *msk) {               \
     return fnname(ref, ref_stride, wsrc, msk) >> 4;                       \
   }
+#endif  // CONFIG_AV1_HIGHBITDEPTH
+#endif  // !CONFIG_REALTIME_ONLY
 
 #if CONFIG_AV1_HIGHBITDEPTH
+#if !CONFIG_REALTIME_ONLY
 MAKE_OBFP_SAD_WRAPPER(aom_highbd_obmc_sad128x128)
 MAKE_OBFP_SAD_WRAPPER(aom_highbd_obmc_sad128x64)
 MAKE_OBFP_SAD_WRAPPER(aom_highbd_obmc_sad64x128)
@@ -445,18 +536,21 @@ MAKE_OBFP_SAD_WRAPPER(aom_highbd_obmc_sad8x32)
 MAKE_OBFP_SAD_WRAPPER(aom_highbd_obmc_sad32x8)
 MAKE_OBFP_SAD_WRAPPER(aom_highbd_obmc_sad16x64)
 MAKE_OBFP_SAD_WRAPPER(aom_highbd_obmc_sad64x16)
+#endif
 
-static AOM_INLINE void highbd_set_var_fns(AV1_COMP *const cpi) {
-  AV1_COMMON *const cm = &cpi->common;
-  if (cm->seq_params.use_highbitdepth) {
-    switch (cm->seq_params.bit_depth) {
+static AOM_INLINE void highbd_set_var_fns(AV1_PRIMARY *const ppi) {
+  SequenceHeader *const seq_params = &ppi->seq_params;
+  if (seq_params->use_highbitdepth) {
+    switch (seq_params->bit_depth) {
       case AOM_BITS_8:
+#if !CONFIG_REALTIME_ONLY
         HIGHBD_BFP_WRAPPER(64, 16, 8)
         HIGHBD_BFP_WRAPPER(16, 64, 8)
         HIGHBD_BFP_WRAPPER(32, 8, 8)
         HIGHBD_BFP_WRAPPER(8, 32, 8)
         HIGHBD_BFP_WRAPPER(16, 4, 8)
         HIGHBD_BFP_WRAPPER(4, 16, 8)
+#endif
         HIGHBD_BFP_WRAPPER(32, 16, 8)
         HIGHBD_BFP_WRAPPER(16, 32, 8)
         HIGHBD_BFP_WRAPPER(64, 32, 8)
@@ -490,44 +584,73 @@ static AOM_INLINE void highbd_set_var_fns(AV1_COMP *const cpi) {
         HIGHBD_MBFP_WRAPPER(4, 8, 8)
         HIGHBD_MBFP_WRAPPER(8, 4, 8)
         HIGHBD_MBFP_WRAPPER(4, 4, 8)
+#if !CONFIG_REALTIME_ONLY
         HIGHBD_MBFP_WRAPPER(64, 16, 8)
         HIGHBD_MBFP_WRAPPER(16, 64, 8)
         HIGHBD_MBFP_WRAPPER(32, 8, 8)
         HIGHBD_MBFP_WRAPPER(8, 32, 8)
         HIGHBD_MBFP_WRAPPER(16, 4, 8)
         HIGHBD_MBFP_WRAPPER(4, 16, 8)
+#endif
 
-        LOWBD_OBFP_WRAPPER(128, 128)
-        LOWBD_OBFP_WRAPPER(128, 64)
-        LOWBD_OBFP_WRAPPER(64, 128)
-        LOWBD_OBFP_WRAPPER(64, 64)
-        LOWBD_OBFP_WRAPPER(64, 32)
-        LOWBD_OBFP_WRAPPER(32, 64)
-        LOWBD_OBFP_WRAPPER(32, 32)
-        LOWBD_OBFP_WRAPPER(32, 16)
-        LOWBD_OBFP_WRAPPER(16, 32)
-        LOWBD_OBFP_WRAPPER(16, 16)
-        LOWBD_OBFP_WRAPPER(8, 16)
-        LOWBD_OBFP_WRAPPER(16, 8)
-        LOWBD_OBFP_WRAPPER(8, 8)
-        LOWBD_OBFP_WRAPPER(4, 8)
-        LOWBD_OBFP_WRAPPER(8, 4)
-        LOWBD_OBFP_WRAPPER(4, 4)
-        LOWBD_OBFP_WRAPPER(64, 16)
-        LOWBD_OBFP_WRAPPER(16, 64)
-        LOWBD_OBFP_WRAPPER(32, 8)
-        LOWBD_OBFP_WRAPPER(8, 32)
-        LOWBD_OBFP_WRAPPER(16, 4)
-        LOWBD_OBFP_WRAPPER(4, 16)
+// OBMC excluded from realtime only build.
+#if !CONFIG_REALTIME_ONLY
+        HIGHBD_OBFP_WRAPPER_8(128, 128)
+        HIGHBD_OBFP_WRAPPER_8(128, 64)
+        HIGHBD_OBFP_WRAPPER_8(64, 128)
+        HIGHBD_OBFP_WRAPPER_8(64, 64)
+        HIGHBD_OBFP_WRAPPER_8(64, 32)
+        HIGHBD_OBFP_WRAPPER_8(32, 64)
+        HIGHBD_OBFP_WRAPPER_8(32, 32)
+        HIGHBD_OBFP_WRAPPER_8(32, 16)
+        HIGHBD_OBFP_WRAPPER_8(16, 32)
+        HIGHBD_OBFP_WRAPPER_8(16, 16)
+        HIGHBD_OBFP_WRAPPER_8(8, 16)
+        HIGHBD_OBFP_WRAPPER_8(16, 8)
+        HIGHBD_OBFP_WRAPPER_8(8, 8)
+        HIGHBD_OBFP_WRAPPER_8(4, 8)
+        HIGHBD_OBFP_WRAPPER_8(8, 4)
+        HIGHBD_OBFP_WRAPPER_8(4, 4)
+        HIGHBD_OBFP_WRAPPER_8(64, 16)
+        HIGHBD_OBFP_WRAPPER_8(16, 64)
+        HIGHBD_OBFP_WRAPPER_8(32, 8)
+        HIGHBD_OBFP_WRAPPER_8(8, 32)
+        HIGHBD_OBFP_WRAPPER_8(16, 4)
+        HIGHBD_OBFP_WRAPPER_8(4, 16)
+#endif
+
+        HIGHBD_SDSFP_WRAPPER(128, 128, 8);
+        HIGHBD_SDSFP_WRAPPER(128, 64, 8);
+        HIGHBD_SDSFP_WRAPPER(64, 128, 8);
+        HIGHBD_SDSFP_WRAPPER(64, 64, 8);
+        HIGHBD_SDSFP_WRAPPER(64, 32, 8);
+        HIGHBD_SDSFP_WRAPPER(32, 64, 8);
+        HIGHBD_SDSFP_WRAPPER(32, 32, 8);
+        HIGHBD_SDSFP_WRAPPER(32, 16, 8);
+        HIGHBD_SDSFP_WRAPPER(16, 32, 8);
+        HIGHBD_SDSFP_WRAPPER(16, 16, 8);
+        HIGHBD_SDSFP_WRAPPER(16, 8, 8);
+        HIGHBD_SDSFP_WRAPPER(8, 16, 8);
+        HIGHBD_SDSFP_WRAPPER(8, 8, 8);
+        HIGHBD_SDSFP_WRAPPER(4, 8, 8);
+#if !CONFIG_REALTIME_ONLY
+        HIGHBD_SDSFP_WRAPPER(64, 16, 8);
+        HIGHBD_SDSFP_WRAPPER(32, 8, 8);
+        HIGHBD_SDSFP_WRAPPER(16, 64, 8);
+        HIGHBD_SDSFP_WRAPPER(8, 32, 8);
+        HIGHBD_SDSFP_WRAPPER(4, 16, 8);
+#endif
         break;
 
       case AOM_BITS_10:
+#if !CONFIG_REALTIME_ONLY
         HIGHBD_BFP_WRAPPER(64, 16, 10)
         HIGHBD_BFP_WRAPPER(16, 64, 10)
         HIGHBD_BFP_WRAPPER(32, 8, 10)
         HIGHBD_BFP_WRAPPER(8, 32, 10)
         HIGHBD_BFP_WRAPPER(16, 4, 10)
         HIGHBD_BFP_WRAPPER(4, 16, 10)
+#endif
         HIGHBD_BFP_WRAPPER(32, 16, 10)
         HIGHBD_BFP_WRAPPER(16, 32, 10)
         HIGHBD_BFP_WRAPPER(64, 32, 10)
@@ -561,13 +684,17 @@ static AOM_INLINE void highbd_set_var_fns(AV1_COMP *const cpi) {
         HIGHBD_MBFP_WRAPPER(4, 8, 10)
         HIGHBD_MBFP_WRAPPER(8, 4, 10)
         HIGHBD_MBFP_WRAPPER(4, 4, 10)
+#if !CONFIG_REALTIME_ONLY
         HIGHBD_MBFP_WRAPPER(64, 16, 10)
         HIGHBD_MBFP_WRAPPER(16, 64, 10)
         HIGHBD_MBFP_WRAPPER(32, 8, 10)
         HIGHBD_MBFP_WRAPPER(8, 32, 10)
         HIGHBD_MBFP_WRAPPER(16, 4, 10)
         HIGHBD_MBFP_WRAPPER(4, 16, 10)
+#endif
 
+// OBMC excluded from realtime only build.
+#if !CONFIG_REALTIME_ONLY
         HIGHBD_OBFP_WRAPPER(128, 128, 10)
         HIGHBD_OBFP_WRAPPER(128, 64, 10)
         HIGHBD_OBFP_WRAPPER(64, 128, 10)
@@ -590,15 +717,41 @@ static AOM_INLINE void highbd_set_var_fns(AV1_COMP *const cpi) {
         HIGHBD_OBFP_WRAPPER(8, 32, 10)
         HIGHBD_OBFP_WRAPPER(16, 4, 10)
         HIGHBD_OBFP_WRAPPER(4, 16, 10)
+#endif
+
+        HIGHBD_SDSFP_WRAPPER(128, 128, 10);
+        HIGHBD_SDSFP_WRAPPER(128, 64, 10);
+        HIGHBD_SDSFP_WRAPPER(64, 128, 10);
+        HIGHBD_SDSFP_WRAPPER(64, 64, 10);
+        HIGHBD_SDSFP_WRAPPER(64, 32, 10);
+        HIGHBD_SDSFP_WRAPPER(32, 64, 10);
+        HIGHBD_SDSFP_WRAPPER(32, 32, 10);
+        HIGHBD_SDSFP_WRAPPER(32, 16, 10);
+        HIGHBD_SDSFP_WRAPPER(16, 32, 10);
+        HIGHBD_SDSFP_WRAPPER(16, 16, 10);
+        HIGHBD_SDSFP_WRAPPER(16, 8, 10);
+        HIGHBD_SDSFP_WRAPPER(8, 16, 10);
+        HIGHBD_SDSFP_WRAPPER(8, 8, 10);
+        HIGHBD_SDSFP_WRAPPER(4, 8, 10);
+
+#if !CONFIG_REALTIME_ONLY
+        HIGHBD_SDSFP_WRAPPER(64, 16, 10);
+        HIGHBD_SDSFP_WRAPPER(32, 8, 10);
+        HIGHBD_SDSFP_WRAPPER(16, 64, 10);
+        HIGHBD_SDSFP_WRAPPER(8, 32, 10);
+        HIGHBD_SDSFP_WRAPPER(4, 16, 10);
+#endif
         break;
 
       case AOM_BITS_12:
+#if !CONFIG_REALTIME_ONLY
         HIGHBD_BFP_WRAPPER(64, 16, 12)
         HIGHBD_BFP_WRAPPER(16, 64, 12)
         HIGHBD_BFP_WRAPPER(32, 8, 12)
         HIGHBD_BFP_WRAPPER(8, 32, 12)
         HIGHBD_BFP_WRAPPER(16, 4, 12)
         HIGHBD_BFP_WRAPPER(4, 16, 12)
+#endif
         HIGHBD_BFP_WRAPPER(32, 16, 12)
         HIGHBD_BFP_WRAPPER(16, 32, 12)
         HIGHBD_BFP_WRAPPER(64, 32, 12)
@@ -632,13 +785,17 @@ static AOM_INLINE void highbd_set_var_fns(AV1_COMP *const cpi) {
         HIGHBD_MBFP_WRAPPER(4, 8, 12)
         HIGHBD_MBFP_WRAPPER(8, 4, 12)
         HIGHBD_MBFP_WRAPPER(4, 4, 12)
+#if !CONFIG_REALTIME_ONLY
         HIGHBD_MBFP_WRAPPER(64, 16, 12)
         HIGHBD_MBFP_WRAPPER(16, 64, 12)
         HIGHBD_MBFP_WRAPPER(32, 8, 12)
         HIGHBD_MBFP_WRAPPER(8, 32, 12)
         HIGHBD_MBFP_WRAPPER(16, 4, 12)
         HIGHBD_MBFP_WRAPPER(4, 16, 12)
+#endif
 
+// OBMC excluded from realtime only build.
+#if !CONFIG_REALTIME_ONLY
         HIGHBD_OBFP_WRAPPER(128, 128, 12)
         HIGHBD_OBFP_WRAPPER(128, 64, 12)
         HIGHBD_OBFP_WRAPPER(64, 128, 12)
@@ -661,47 +818,48 @@ static AOM_INLINE void highbd_set_var_fns(AV1_COMP *const cpi) {
         HIGHBD_OBFP_WRAPPER(8, 32, 12)
         HIGHBD_OBFP_WRAPPER(16, 4, 12)
         HIGHBD_OBFP_WRAPPER(4, 16, 12)
+#endif
+
+        HIGHBD_SDSFP_WRAPPER(128, 128, 12);
+        HIGHBD_SDSFP_WRAPPER(128, 64, 12);
+        HIGHBD_SDSFP_WRAPPER(64, 128, 12);
+        HIGHBD_SDSFP_WRAPPER(64, 64, 12);
+        HIGHBD_SDSFP_WRAPPER(64, 32, 12);
+        HIGHBD_SDSFP_WRAPPER(32, 64, 12);
+        HIGHBD_SDSFP_WRAPPER(32, 32, 12);
+        HIGHBD_SDSFP_WRAPPER(32, 16, 12);
+        HIGHBD_SDSFP_WRAPPER(16, 32, 12);
+        HIGHBD_SDSFP_WRAPPER(16, 16, 12);
+        HIGHBD_SDSFP_WRAPPER(16, 8, 12);
+        HIGHBD_SDSFP_WRAPPER(8, 16, 12);
+        HIGHBD_SDSFP_WRAPPER(8, 8, 12);
+        HIGHBD_SDSFP_WRAPPER(4, 8, 12);
+
+#if !CONFIG_REALTIME_ONLY
+        HIGHBD_SDSFP_WRAPPER(64, 16, 12);
+        HIGHBD_SDSFP_WRAPPER(32, 8, 12);
+        HIGHBD_SDSFP_WRAPPER(16, 64, 12);
+        HIGHBD_SDSFP_WRAPPER(8, 32, 12);
+        HIGHBD_SDSFP_WRAPPER(4, 16, 12);
+#endif
         break;
 
       default:
         assert(0 &&
-               "cm->seq_params.bit_depth should be AOM_BITS_8, "
+               "cm->seq_params->bit_depth should be AOM_BITS_8, "
                "AOM_BITS_10 or AOM_BITS_12");
     }
-
-    HIGHBD_SDSFP_WRAPPER(128, 128);
-    HIGHBD_SDSFP_WRAPPER(128, 64);
-    HIGHBD_SDSFP_WRAPPER(64, 128);
-    HIGHBD_SDSFP_WRAPPER(64, 64);
-    HIGHBD_SDSFP_WRAPPER(64, 32);
-    HIGHBD_SDSFP_WRAPPER(64, 16);
-    HIGHBD_SDSFP_WRAPPER(32, 64);
-    HIGHBD_SDSFP_WRAPPER(32, 32);
-    HIGHBD_SDSFP_WRAPPER(32, 16);
-    HIGHBD_SDSFP_WRAPPER(32, 8);
-    HIGHBD_SDSFP_WRAPPER(16, 64);
-    HIGHBD_SDSFP_WRAPPER(16, 32);
-    HIGHBD_SDSFP_WRAPPER(16, 16);
-    HIGHBD_SDSFP_WRAPPER(16, 8);
-    HIGHBD_SDSFP_WRAPPER(8, 16);
-    HIGHBD_SDSFP_WRAPPER(8, 8);
-    HIGHBD_SDSFP_WRAPPER(4, 16);
-    HIGHBD_SDSFP_WRAPPER(4, 8);
-    HIGHBD_SDSFP_WRAPPER(4, 16);
-    HIGHBD_SDSFP_WRAPPER(8, 32);
-    HIGHBD_SDSFP_WRAPPER(32, 8);
-    HIGHBD_SDSFP_WRAPPER(64, 16);
   }
 }
 #endif  // CONFIG_AV1_HIGHBITDEPTH
 
 static AOM_INLINE void copy_frame_prob_info(AV1_COMP *cpi) {
-  FrameProbInfo *const frame_probs = &cpi->frame_probs;
+  FrameProbInfo *const frame_probs = &cpi->ppi->frame_probs;
   if (cpi->sf.tx_sf.tx_type_search.prune_tx_type_using_stats) {
     av1_copy(frame_probs->tx_type_probs, default_tx_type_probs);
   }
-  if (!cpi->sf.inter_sf.disable_obmc &&
-      cpi->sf.inter_sf.prune_obmc_prob_thresh > 0) {
+  if (cpi->sf.inter_sf.prune_obmc_prob_thresh > 0 &&
+      cpi->sf.inter_sf.prune_obmc_prob_thresh < INT_MAX) {
     av1_copy(frame_probs->obmc_probs, default_obmc_probs);
   }
   if (cpi->sf.inter_sf.prune_warped_prob_thresh > 0) {
@@ -713,11 +871,13 @@ static AOM_INLINE void copy_frame_prob_info(AV1_COMP *cpi) {
   }
 }
 
-static AOM_INLINE void restore_cur_buf(AV1_COMP *cpi) {
-  CODING_CONTEXT *const cc = &cpi->coding_context;
-  AV1_COMMON *cm = &cpi->common;
-  aom_yv12_copy_frame(&cc->copy_buffer, &cm->cur_frame->buf,
-                      av1_num_planes(cm));
+static AOM_INLINE void restore_cdef_coding_context(CdefInfo *const dst,
+                                                   const CdefInfo *const src) {
+  dst->cdef_bits = src->cdef_bits;
+  dst->cdef_damping = src->cdef_damping;
+  av1_copy(dst->cdef_strengths, src->cdef_strengths);
+  av1_copy(dst->cdef_uv_strengths, src->cdef_uv_strengths);
+  dst->nb_cdef_strengths = src->nb_cdef_strengths;
 }
 
 // Coding context that only needs to be restored when recode loop includes
@@ -727,12 +887,9 @@ static AOM_INLINE void restore_extra_coding_context(AV1_COMP *cpi) {
   CODING_CONTEXT *const cc = &cpi->coding_context;
   AV1_COMMON *cm = &cpi->common;
   cm->lf = cc->lf;
-  cm->cdef_info = cc->cdef_info;
+  restore_cdef_coding_context(&cm->cdef_info, &cc->cdef_info);
   cpi->rc = cc->rc;
-}
-
-static AOM_INLINE void release_copy_buffer(CODING_CONTEXT *cc) {
-  aom_free_frame_buffer(&cc->copy_buffer);
+  cpi->ppi->mv_stats = cc->mv_stats;
 }
 
 static AOM_INLINE int equal_dimensions_and_border(const YV12_BUFFER_CONFIG *a,
@@ -795,13 +952,10 @@ static AOM_INLINE void release_scaled_references(AV1_COMP *cpi) {
   }
 }
 
-#if CONFIG_SUPERRES_IN_RECODE
 static AOM_INLINE void restore_all_coding_context(AV1_COMP *cpi) {
-  restore_cur_buf(cpi);
   restore_extra_coding_context(cpi);
   if (!frame_is_intra_only(&cpi->common)) release_scaled_references(cpi);
 }
-#endif  // CONFIG_SUPERRES_IN_RECODE
 
 // Refresh reference frame buffers according to refresh_frame_flags.
 static AOM_INLINE void refresh_reference_frames(AV1_COMP *cpi) {
@@ -815,6 +969,8 @@ static AOM_INLINE void refresh_reference_frames(AV1_COMP *cpi) {
   }
 }
 
+void av1_update_film_grain_parameters_seq(struct AV1_PRIMARY *ppi,
+                                          const AV1EncoderConfig *oxcf);
 void av1_update_film_grain_parameters(struct AV1_COMP *cpi,
                                       const AV1EncoderConfig *oxcf);
 
@@ -823,7 +979,8 @@ void av1_scale_references(AV1_COMP *cpi, const InterpFilter filter,
 
 void av1_setup_frame(AV1_COMP *cpi);
 
-BLOCK_SIZE av1_select_sb_size(const AV1_COMP *const cpi);
+BLOCK_SIZE av1_select_sb_size(const AV1EncoderConfig *const oxcf, int width,
+                              int height, int number_spatial_layers);
 
 void av1_apply_active_map(AV1_COMP *cpi);
 
@@ -831,10 +988,6 @@ void av1_apply_active_map(AV1_COMP *cpi);
 uint16_t av1_setup_interp_filter_search_mask(AV1_COMP *cpi);
 
 void av1_determine_sc_tools_with_encoding(AV1_COMP *cpi, const int q_orig);
-
-int av1_recode_loop_test_global_motion(WarpedMotionParams *const global_motion,
-                                       const int *const global_motion_used,
-                                       int *const gm_params_cost);
 #endif
 
 void av1_set_size_dependent_vars(AV1_COMP *cpi, int *q, int *bottom_index,
@@ -848,9 +1001,7 @@ int av1_is_integer_mv(const YV12_BUFFER_CONFIG *cur_picture,
 
 void av1_set_mb_ssim_rdmult_scaling(AV1_COMP *cpi);
 
-#if CONFIG_SUPERRES_IN_RECODE
 void av1_save_all_coding_context(AV1_COMP *cpi);
-#endif
 
 #if DUMP_RECON_FRAMES == 1
 void av1_dump_filtered_recon_frames(AV1_COMP *cpi);
