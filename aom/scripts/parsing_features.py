@@ -7,6 +7,8 @@ pathin = "../output_files/"
 
 files = sorted(os.listdir("%s"%pathin))
 
+arqs = len(files)
+
 for file in files:
 
 	fileout = open("./out_%s"%file,"w")
@@ -17,6 +19,7 @@ for file in files:
 
 	line=0
 	i=0
+	arq=1
 	while line != lines[-1]:
 		line=lines[i];
 		i+=1
@@ -55,5 +58,6 @@ for file in files:
 		fileout.write(linha)
 		fileout.write("\n")
 		fileout.close
-	print("Concluido!")
+	print("Concluido %s de %s!"%(arq,arqs))
+	arq=+1
 print("FIM!")

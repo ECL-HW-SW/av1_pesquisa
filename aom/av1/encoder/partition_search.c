@@ -2950,6 +2950,13 @@ static void rectangular_partition_search(
     FILE *feat_prune_rect_ml = fopen("output_files/get_prune_rect_ML.csv", "a");
     FILE *feat_prune_rect = fopen("output_files/get_prune_rect.csv", "a");
 
+    FILE *feat_early_term_after_split_norm =
+        fopen("output_files/get_early_term_after_split_norm.csv", "a");
+    FILE *feat_prune_rect_ml_norm =
+        fopen("output_files/get_prune_rect_ML_norm.csv", "a");
+    FILE *feat_prune_rect_norm =
+        fopen("output_files/get_prune_rect_norm.csv", "a");
+
     if (sum_rdc->rdcost < best_rdc->rdcost) {
       // @icaro - brd rectangular_partition_search
       if (!frame_is_intra_only(cm) && (bsize != 0)) {
@@ -2963,7 +2970,20 @@ static void rectangular_partition_search(
           fprintf(feat_prune_rect_ml, "%d;%d;%d;%d;1_h;",
                   cm->current_frame.frame_number, blk_params.mi_row,
                   blk_params.mi_col, bsize);
+
           fprintf(feat_prune_rect, "%d;%d;%d;%d;1_h;",
+                  cm->current_frame.frame_number, blk_params.mi_row,
+                  blk_params.mi_col, bsize);
+
+          fprintf(feat_early_term_after_split_norm, "%d;%d;%d;%d;1_rec_h;",
+                  cm->current_frame.frame_number, blk_params.mi_row,
+                  blk_params.mi_col, bsize);
+
+          fprintf(feat_prune_rect_ml_norm, "%d;%d;%d;%d;1_h;",
+                  cm->current_frame.frame_number, blk_params.mi_row,
+                  blk_params.mi_col, bsize);
+
+          fprintf(feat_prune_rect_norm, "%d;%d;%d;%d;1_h;",
                   cm->current_frame.frame_number, blk_params.mi_row,
                   blk_params.mi_col, bsize);
         } else {
@@ -2971,6 +2991,11 @@ static void rectangular_partition_search(
 
           fprintf(feat_prune_rect_ml, "1_v;\n");
           fprintf(feat_prune_rect, "1_v;\n");
+
+          fprintf(feat_early_term_after_split_norm, "1_rec_v;\n");
+
+          fprintf(feat_prune_rect_ml_norm, "1_v;\n");
+          fprintf(feat_prune_rect_norm, "1_v;\n");
         }
       }
 
@@ -3010,6 +3035,10 @@ static void rectangular_partition_search(
     fclose(feat_early_term_after_split);
     fclose(feat_prune_rect_ml);
     fclose(feat_prune_rect);
+
+    fclose(feat_early_term_after_split_norm);
+    fclose(feat_prune_rect_ml_norm);
+    fclose(feat_prune_rect_norm);
 
 #if CONFIG_COLLECT_PARTITION_STATS
     if (part_timing_stats->timer_is_on) {
@@ -4482,8 +4511,16 @@ BEGIN_PARTITION_SEARCH:
 
   if (!frame_is_intra_only(cm) && (bsize != 0)) {
     FILE *feat_early_term_none = fopen("output_files/early_term_none.csv", "a");
+
+    FILE *feat_early_term_none_norm =
+        fopen("output_files/early_term_none_norm.csv", "a");
     if (max_rd != best_rdc.rdcost) {
       fprintf(feat_early_term_none, "%d;%d;%d;%d;1;\n",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
+
+      fprintf(feat_early_term_none_norm, "%d;%d;%d;%d;1;\n",
               cm->current_frame.frame_number,
               part_search_state.part_blk_params.mi_row,
               part_search_state.part_blk_params.mi_col, bsize);
@@ -4492,8 +4529,15 @@ BEGIN_PARTITION_SEARCH:
               cm->current_frame.frame_number,
               part_search_state.part_blk_params.mi_row,
               part_search_state.part_blk_params.mi_col, bsize);
+
+      fprintf(feat_early_term_none_norm, "%d;%d;%d;%d;0;\n",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
     }
     fclose(feat_early_term_none);
+
+    fclose(feat_early_term_none_norm);
   }
 
 #if CONFIG_COLLECT_COMPONENT_TIMING
@@ -4525,18 +4569,32 @@ BEGIN_PARTITION_SEARCH:
 
   if (!frame_is_intra_only(cm) && (bsize != 0)) {
     FILE *feat_based_split = fopen("output_files/based_split.csv", "a");
+    FILE *feat_based_split_norm =
+        fopen("output_files/based_split_norm.csv", "a");
     if (max_rd != best_rdc.rdcost) {
       fprintf(feat_based_split, "%d;%d;%d;%d;1;\n",
               cm->current_frame.frame_number,
               part_search_state.part_blk_params.mi_row,
               part_search_state.part_blk_params.mi_col, bsize);
+
+      fprintf(feat_based_split_norm, "%d;%d;%d;%d;1;\n",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
+
     } else {
       fprintf(feat_based_split, "%d;%d;%d;%d;0;\n",
               cm->current_frame.frame_number,
               part_search_state.part_blk_params.mi_row,
               part_search_state.part_blk_params.mi_col, bsize);
+
+      fprintf(feat_based_split_norm, "%d;%d;%d;%d;0;\n",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
     }
     fclose(feat_based_split);
+    fclose(feat_based_split_norm);
   }
   ecltimers->block_timer_begin[bsize] = clock();
 
@@ -4607,14 +4665,31 @@ BEGIN_PARTITION_SEARCH:
 
   FILE *feat_prune_ab_partition =
       fopen("output_files/get_prune_ab_partition.csv", "a");
+
+  FILE *feat_early_term_after_split_norm =
+      fopen("output_files/get_early_term_after_split_norm.csv", "a");
+
+  // FILE *feat_prune_ab_partition_norm =
+  //     fopen("output_files/get_prune_ab_partition_norm.csv", "a");
+
   if (max_rd != best_rdc.rdcost) {
     fprintf(feat_prune_ab_partition, "%d;%d;%d;%d;1;\n",
             cm->current_frame.frame_number,
             part_search_state.part_blk_params.mi_row,
             part_search_state.part_blk_params.mi_col, bsize);
 
+    // fprintf(feat_prune_ab_partition_norm, "%d;%d;%d;%d;1;\n",
+    //         cm->current_frame.frame_number,
+    //         part_search_state.part_blk_params.mi_row,
+    //         part_search_state.part_blk_params.mi_col, bsize);
+
     if (!frame_is_intra_only(cm) && (bsize != 0)) {
       fprintf(feat_early_term_after_split, "%d;%d;%d;%d;1_ab;\n",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
+
+      fprintf(feat_early_term_after_split_norm, "%d;%d;%d;%d;1_ab;\n",
               cm->current_frame.frame_number,
               part_search_state.part_blk_params.mi_row,
               part_search_state.part_blk_params.mi_col, bsize);
@@ -4625,8 +4700,18 @@ BEGIN_PARTITION_SEARCH:
             part_search_state.part_blk_params.mi_row,
             part_search_state.part_blk_params.mi_col, bsize);
 
+    // fprintf(feat_prune_ab_partition_norm, "%d;%d;%d;%d;0;\n",
+    //         cm->current_frame.frame_number,
+    //         part_search_state.part_blk_params.mi_row,
+    //         part_search_state.part_blk_params.mi_col, bsize);
+
     if (!frame_is_intra_only(cm) && (bsize != 0)) {
       fprintf(feat_early_term_after_split, "%d;%d;%d;%d;0_ab;\n",
+              cm->current_frame.frame_number,
+              part_search_state.part_blk_params.mi_row,
+              part_search_state.part_blk_params.mi_col, bsize);
+
+      fprintf(feat_early_term_after_split_norm, "%d;%d;%d;%d;0_ab;\n",
               cm->current_frame.frame_number,
               part_search_state.part_blk_params.mi_row,
               part_search_state.part_blk_params.mi_col, bsize);
@@ -4634,6 +4719,9 @@ BEGIN_PARTITION_SEARCH:
   }
   fclose(feat_prune_ab_partition);
   fclose(feat_early_term_after_split);
+
+  // fclose(feat_prune_ab_partition_norm);
+  fclose(feat_early_term_after_split_norm);
 
 #if CONFIG_COLLECT_COMPONENT_TIMING
   end_timing(cpi, ab_partitions_search_time);
@@ -4675,14 +4763,30 @@ BEGIN_PARTITION_SEARCH:
     FILE *feat_prune_4_partition =
         fopen("output_files/get_prune_4_partition.csv", "a");
 
+    FILE *feat_early_term_after_split_norm =
+        fopen("output_files/get_early_term_after_split_norm.csv", "a");
+
+    // FILE *feat_prune_4_partition_norm =
+    //     fopen("output_files/get_prune_4_partition_norm.csv", "a");
+
     if (max_rd != best_rdc.rdcost) {
       fprintf(feat_prune_4_partition, "%d;%d;%d;%d;1_hor;",
               cm->current_frame.frame_number,
               part_search_state.part_blk_params.mi_row,
               part_search_state.part_blk_params.mi_col, bsize);
 
+      // fprintf(feat_prune_4_partition_norm, "%d;%d;%d;%d;1_hor;",
+      //         cm->current_frame.frame_number,
+      //         part_search_state.part_blk_params.mi_row,
+      //         part_search_state.part_blk_params.mi_col, bsize);
+
       if (!frame_is_intra_only(cm) && (bsize != 0)) {
         fprintf(feat_early_term_after_split, "%d;%d;%d;%d;1_4way_hor;",
+                cm->current_frame.frame_number,
+                part_search_state.part_blk_params.mi_row,
+                part_search_state.part_blk_params.mi_col, bsize);
+
+        fprintf(feat_early_term_after_split_norm, "%d;%d;%d;%d;1_4way_hor;",
                 cm->current_frame.frame_number,
                 part_search_state.part_blk_params.mi_row,
                 part_search_state.part_blk_params.mi_col, bsize);
@@ -4693,8 +4797,18 @@ BEGIN_PARTITION_SEARCH:
               part_search_state.part_blk_params.mi_row,
               part_search_state.part_blk_params.mi_col, bsize);
 
+      // fprintf(feat_prune_4_partition_norm, "%d;%d;%d;%d;0_hor;",
+      //         cm->current_frame.frame_number,
+      //         part_search_state.part_blk_params.mi_row,
+      //         part_search_state.part_blk_params.mi_col, bsize);
+
       if (!frame_is_intra_only(cm) && (bsize != 0)) {
         fprintf(feat_early_term_after_split, "%d;%d;%d;%d;0_4way_hor;",
+                cm->current_frame.frame_number,
+                part_search_state.part_blk_params.mi_row,
+                part_search_state.part_blk_params.mi_col, bsize);
+
+        fprintf(feat_early_term_after_split_norm, "%d;%d;%d;%d;0_4way_hor;",
                 cm->current_frame.frame_number,
                 part_search_state.part_blk_params.mi_row,
                 part_search_state.part_blk_params.mi_col, bsize);
@@ -4702,6 +4816,9 @@ BEGIN_PARTITION_SEARCH:
     }
     fclose(feat_prune_4_partition);
     fclose(feat_early_term_after_split);
+
+    // fclose(feat_prune_4_partition_norm);
+    fclose(feat_early_term_after_split_norm);
   }
 
   // PARTITION_VERT_4
@@ -4726,21 +4843,35 @@ BEGIN_PARTITION_SEARCH:
 
     FILE *feat_prune_4_partition =
         fopen("output_files/get_prune_4_partition.csv", "a");
+
+    FILE *feat_early_term_after_split_norm =
+        fopen("output_files/get_early_term_after_split_norm.csv", "a");
+
+    // FILE *feat_prune_4_partition_norm =
+    //     fopen("output_files/get_prune_4_partition_norm.csv", "a");
+
     if (max_rd != best_rdc.rdcost) {
       fprintf(feat_prune_4_partition, "1_ver;\n");
+      // fprintf(feat_prune_4_partition_norm, "1_ver;\n");
 
       if (!frame_is_intra_only(cm) && (bsize != 0)) {
         fprintf(feat_early_term_after_split, "1_4way_ver;\n");
+        fprintf(feat_early_term_after_split_norm, "1_4way_ver;\n");
       }
     } else {
       fprintf(feat_prune_4_partition, "0_ver;\n");
+      // fprintf(feat_prune_4_partition_norm, "0_ver;\n");
 
       if (!frame_is_intra_only(cm) && (bsize != 0)) {
         fprintf(feat_early_term_after_split, "0_4way_ver;\n");
+        fprintf(feat_early_term_after_split_norm, "0_4way_ver;\n");
       }
     }
     fclose(feat_prune_4_partition);
     fclose(feat_early_term_after_split);
+
+    // fclose(feat_prune_4_partition_norm);
+    fclose(feat_early_term_after_split_norm);
   }
   ecltimers->block_timer_end[bsize] = clock();
   ecltimers->block_timer_acc[bsize] +=
