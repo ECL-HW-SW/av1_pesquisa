@@ -4,6 +4,8 @@ aom/build_d
 
 aom/.vscode
 
+aom/output_files
+
 .vscode
 
 output
