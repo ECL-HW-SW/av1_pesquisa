@@ -45,7 +45,7 @@ bool av1_rd_partition_search(AV1_COMP *const cpi, ThreadData *td,
                              TileDataEnc *tile_data, TokenExtra **tp,
                              SIMPLE_MOTION_DATA_TREE *sms_root, int mi_row,
                              int mi_col, BLOCK_SIZE bsize,
-                             RD_STATS *best_rd_cost);
+                             RD_STATS *best_rd_cost, ECLTimers *ecltimers);
 bool av1_rd_pick_partition(AV1_COMP *const cpi, ThreadData *td,
                            TileDataEnc *tile_data, TokenExtra **tp, int mi_row,
                            int mi_col, BLOCK_SIZE bsize, RD_STATS *rd_cost,

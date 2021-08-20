@@ -9,7 +9,11 @@ files = sorted(os.listdir("%s"%pathin))
 
 arqs = len(files)
 
+arq=0
 for file in files:
+	if "bias" in file or "weights" in file:
+		arqs = arqs-1
+		continue
 
 	fileout = open("./out_%s"%file,"w")
 
@@ -19,7 +23,7 @@ for file in files:
 
 	line=0
 	i=0
-	arq=1
+	print("processando... (%s)"%file)
 	while line != lines[-1]:
 		line=lines[i];
 		i+=1
@@ -58,6 +62,6 @@ for file in files:
 		fileout.write(linha)
 		fileout.write("\n")
 		fileout.close
-	print("Concluido %s de %s!"%(arq,arqs))
-	arq=+1
-print("FIM!")
+	arq+=1
+	print("Concluido %s de %s! (%s)\n"%(arq,arqs,file))
+print("FIM! Concluidos %s de %s arquivos!"%(arq,arqs))

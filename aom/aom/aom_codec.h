@@ -302,8 +302,10 @@ typedef const void *aom_codec_iter_t;
 typedef struct {
   time_t block_timer_begin[22];  // são 22 tamanhos de bloco
   time_t block_timer_end[22];
+  time_t global_timer;  //@grellert - alan
   double block_timer_acc[22];
-  unsigned pass;  // AV1 faz duas passadas
+  int block_counter[22];  //@grellert - alan
+  unsigned pass;          // AV1 faz duas passadas
   // TODO adicionar outras variáveis/timers
   // time_t  me_timer_begin, ....
   int disable_prune_partitions_before_search;
