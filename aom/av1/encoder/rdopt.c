@@ -3088,7 +3088,7 @@ void av1_rd_pick_intra_mode_sb(const struct AV1_COMP *cpi, struct macroblock *x,
   int rate_y = 0, rate_uv = 0, rate_y_tokenonly = 0, rate_uv_tokenonly = 0;
   int y_skip_txfm = 0, uv_skip_txfm = 0;
   int64_t dist_y = 0, dist_uv = 0;
-
+  //
   ctx->rd_stats.skip_txfm = 0;
   mbmi->ref_frame[0] = INTRA_FRAME;
   mbmi->ref_frame[1] = NONE_FRAME;
