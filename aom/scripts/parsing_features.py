@@ -61,7 +61,7 @@ for file in files:
 
 		fileout.write(linha)
 		fileout.write("\n")
-		fileout.close
+		fileout.close()
 	arq+=1
 	print("Concluido %s de %s! (%s)\n"%(arq,arqs,file))
 print("FIM! Concluidos %s de %s arquivos!"%(arq,arqs))

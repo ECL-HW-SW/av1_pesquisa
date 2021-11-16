@@ -1,0 +1,166 @@
+ Frame number: 1, Frame type: KEY_FRAME, Show Frame: 1, Q: 132
+                           av1_encode_strategy_time:         55723967 us [100.00%] (total:        55723967 us [100.00%])
+                            denoise_and_encode_time:         55723921 us [100.00%] (total:        55723921 us [100.00%])
+                     encode_frame_to_data_rate_time:         55177482 us [ 99.02%] (total:        55177482 us [ 99.02%])
+                       encode_with_recode_loop_time:         52742721 us [ 94.65%] (total:        52742721 us [ 94.65%])
+								 encode_sb_row_time:         52700213 us [ 94.57%] (total:        52700213 us [ 94.57%])
+                              rd_pick_sb_modes_time:         51472832 us [ 92.37%] (total:        51472832 us [ 92.37%])
+                     av1_rd_pick_intra_mode_sb_time:         51444396 us [ 92.32%] (total:        51444396 us [ 92.32%])
+                              av1_encode_frame_time:         49014282 us [ 87.96%] (total:        49014282 us [ 87.96%])
+                             rd_pick_partition_time:         49007374 us [ 87.95%] (total:        49007374 us [ 87.95%])
+                  rectangular_partition_search_time:         20543734 us [ 36.87%] (total:        20543734 us [ 36.87%])
+						split_partition_search_time:         12074837 us [ 21.67%] (total:        12074837 us [ 21.67%])
+							rd_pick_4partition_time:         11924216 us [ 21.40%] (total:        11924216 us [ 21.40%])
+                         none_partition_search_time:         10936916 us [ 19.63%] (total:        10936916 us [ 19.63%])
+                          ab_partitions_search_time:          5116085 us [  9.18%] (total:         5116085 us [  9.18%])
+                                          cdef_time:          1456673 us [  2.61%] (total:         1456673 us [  2.61%])
+                              loop_restoration_time:           871965 us [  1.56%] (total:          871965 us [  1.56%])
+                           av1_tpl_setup_stats_time:           546428 us [  0.98%] (total:          546428 us [  0.98%])
+                                     encode_sb_time:           228045 us [  0.41%] (total:          228045 us [  0.41%])
+                                   loop_filter_time:           100280 us [  0.18%] (total:          100280 us [  0.18%])
+                          av1_prune_partitions_time:            29992 us [  0.05%] (total:           29992 us [  0.05%])
+                      av1_pack_bitstream_final_time:             5238 us [  0.01%] (total:            5238 us [  0.01%])
+                    av1_get_second_pass_params_time:               32 us [  0.00%] (total:              32 us [  0.00%])
+                     av1_compute_global_motion_time:                9 us [  0.00%] (total:               9 us [  0.00%])
+                               apply_filtering_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                        av1_setup_motion_field_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                     av1_rd_pick_inter_mode_sb_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                 set_params_rd_pick_inter_mode_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                               skip_inter_mode_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                             handle_inter_mode_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+    evaluate_motion_mode_for_winner_candidates_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                                  do_tx_search_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                             handle_intra_mode_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                         refine_winner_mode_tx_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                       av1_search_palette_mode_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                                  handle_newmv_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                              compound_type_rd_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                   interpolation_filter_search_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                                motion_mode_rd_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+35.785 34.844 37.865 39.632    9163F Encoding a frame:
+
+
+ Frame number: 2, Frame type: INTER_FRAME, Show Frame: 1, Q: 220
+                           av1_encode_strategy_time:          9210607 us [100.00%] (total:        64934574 us [100.00%])
+							denoise_and_encode_time:          9210601 us [100.00%] (total:        64934522 us [100.00%])
+					 encode_frame_to_data_rate_time:          9210599 us [100.00%] (total:        64388081 us [ 99.16%])
+					   encode_with_recode_loop_time:          8274114 us [ 89.83%] (total:        61016835 us [ 93.97%])
+                                 encode_sb_row_time:          7863896 us [ 85.38%] (total:        60564109 us [ 93.27%])
+                              rd_pick_sb_modes_time:          6960967 us [ 75.58%] (total:        58433799 us [ 89.99%])
+                              av1_encode_frame_time:          8273534 us [ 89.83%] (total:        57287816 us [ 88.22%])
+                             rd_pick_partition_time:          7853169 us [ 85.26%] (total:        56860543 us [ 87.57%])
+                     av1_rd_pick_intra_mode_sb_time:                0 us [  0.00%] (total:        51444396 us [ 79.22%])
+                  rectangular_partition_search_time:          1764567 us [ 19.16%] (total:        22308301 us [ 34.36%])
+                         none_partition_search_time:          4128323 us [ 44.82%] (total:        15065239 us [ 23.20%])
+                        split_partition_search_time:          1010020 us [ 10.97%] (total:        13084857 us [ 20.15%])
+                            rd_pick_4partition_time:           589709 us [  6.40%] (total:        12513925 us [ 19.27%])
+                     av1_rd_pick_inter_mode_sb_time:          6957311 us [ 75.54%] (total:         6957311 us [ 10.71%])
+                          ab_partitions_search_time:           558037 us [  6.06%] (total:         5674122 us [  8.74%])
+                             handle_inter_mode_time:          5320862 us [ 57.77%] (total:         5320862 us [  8.19%])
+                                motion_mode_rd_time:          3787993 us [ 41.13%] (total:         3787993 us [  5.83%])
+                              loop_restoration_time:           885808 us [  9.62%] (total:         1757773 us [  2.71%])
+                                          cdef_time:            15975 us [  0.17%] (total:         1472648 us [  2.27%])
+                             handle_intra_mode_time:          1525985 us [ 16.57%] (total:         1525985 us [  2.35%])
+                                  handle_newmv_time:          1127253 us [ 12.24%] (total:         1127253 us [  1.74%])
+                          av1_prune_partitions_time:           666326 us [  7.23%] (total:          696318 us [  1.07%])
+                           av1_tpl_setup_stats_time:                0 us [  0.00%] (total:          546428 us [  0.84%])
+                     av1_compute_global_motion_time:           407123 us [  4.42%] (total:          407132 us [  0.63%])
+                   interpolation_filter_search_time:           373134 us [  4.05%] (total:          373134 us [  0.57%])
+                                     encode_sb_time:            39320 us [  0.43%] (total:          267365 us [  0.41%])
+                                   loop_filter_time:            34448 us [  0.37%] (total:          134728 us [  0.21%])
+                 set_params_rd_pick_inter_mode_time:            51548 us [  0.56%] (total:           51548 us [  0.08%])
+                               skip_inter_mode_time:            14676 us [  0.16%] (total:           14676 us [  0.02%])
+                      av1_pack_bitstream_final_time:              194 us [  0.00%] (total:            5432 us [  0.01%])
+                         refine_winner_mode_tx_time:              315 us [  0.00%] (total:             315 us [  0.00%])
+                              compound_type_rd_time:              180 us [  0.00%] (total:             180 us [  0.00%])
+    evaluate_motion_mode_for_winner_candidates_time:               82 us [  0.00%] (total:              82 us [  0.00%])
+                                  do_tx_search_time:               46 us [  0.00%] (total:              46 us [  0.00%])
+                    av1_get_second_pass_params_time:                1 us [  0.00%] (total:              33 us [  0.00%])
+                        av1_setup_motion_field_time:                8 us [  0.00%] (total:               8 us [  0.00%])
+                               apply_filtering_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                       av1_search_palette_mode_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+
+############################################################################################################################
+############################################################################################################################
+
+ Frame number: 1, Frame type: KEY_FRAME, Show Frame: 1, Q: 132
+    av1_encode_strategy_time:         55723967 us [100.00%] (total:        55723967 us [100.00%])
+        denoise_and_encode_time:         55723921 us [100.00%] (total:        55723921 us [100.00%])
+            encode_frame_to_data_rate_time:         55177482 us [ 99.02%] (total:        55177482 us [ 99.02%])
+                encode_with_recode_loop_time:         52742721 us [ 94.65%] (total:        52742721 us [ 94.65%])
+                    av1_encode_frame_time:         49014282 us [ 87.96%] (total:        49014282 us [ 87.96%])
+
+                encode_sb_row_time:         52700213 us [ 94.57%] (total:        52700213 us [ 94.57%])
+                    rd_pick_sb_modes_time:         51472832 us [ 92.37%] (total:        51472832 us [ 92.37%])
+                        av1_rd_pick_intra_mode_sb_time:         51444396 us [ 92.32%] (total:        51444396 us [ 92.32%])
+
+                    rd_pick_partition_time:         49007374 us [ 87.95%] (total:        49007374 us [ 87.95%])
+                        none_partition_search_time:         10936916 us [ 19.63%] (total:        10936916 us [ 19.63%])
+
+                        split_partition_search_time:         12074837 us [ 21.67%] (total:        12074837 us [ 21.67%])
+                            rd_pick_partition_time:         49007374 us [ 87.95%] (total:        49007374 us [ 87.95%])
+                                none_partition_search_time:         10936916 us [ 19.63%] (total:        10936916 us [ 19.63%])
+
+                            rd_pick_partition_time:         49007374 us [ 87.95%] (total:        49007374 us [ 87.95%])
+                                rectangular_partition_search_time:         20543734 us [ 36.87%] (total:        20543734 us [ 36.87%])
+
+                            rd_pick_partition_time:         49007374 us [ 87.95%] (total:        49007374 us [ 87.95%])
+                                ab_partitions_search_time:          5116085 us [  9.18%] (total:         5116085 us [  9.18%])
+
+                            rd_pick_partition_time:         49007374 us [ 87.95%] (total:        49007374 us [ 87.95%])
+                                rd_pick_4partition_time:         11924216 us [ 21.40%] (total:        11924216 us [ 21.40%])
+
+ Frame number: 2, Frame type: INTER_FRAME, Show Frame: 1, Q: 220
+
+    av1_encode_strategy_time:          9210607 us [100.00%] (total:        64934574 us [100.00%])
+        denoise_and_encode_time:          9210601 us [100.00%] (total:        64934522 us [100.00%])
+            encode_frame_to_data_rate_time:          9210599 us [100.00%] (total:        64388081 us [ 99.16%])
+                encode_with_recode_loop_time:          8274114 us [ 89.83%] (total:        61016835 us [ 93.97%])
+                    av1_compute_global_motion_time:           407123 us [  4.42%] (total:          407132 us [  0.63%])
+
+                    av1_encode_frame_time:          8273534 us [ 89.83%] (total:        57287816 us [ 88.22%])
+
+                    loop_restoration_time:           885808 us [  9.62%] (total:         1757773 us [  2.71%])
+
+                encode_sb_row_time:          7863896 us [ 85.38%] (total:        60564109 us [ 93.27%])
+                    rd_pick_sb_modes_time:          6960967 us [ 75.58%] (total:        58433799 us [ 89.99%])
+                        av1_rd_pick_intra_mode_sb_time:                0 us [  0.00%] (total:        51444396 us [ 79.22%])
+
+                    rd_pick_partition_time:          7853169 us [ 85.26%] (total:        56860543 us [ 87.57%])
+                        av1_prune_partitions_time:           666326 us [  7.23%] (total:          696318 us [  1.07%])
+
+                        none_partition_search_time:          4128323 us [ 44.82%] (total:        15065239 us [ 23.20%])
+                            av1_rd_pick_inter_mode_sb_time:          6957311 us [ 75.54%] (total:         6957311 us [ 10.71%])
+                                handle_inter_mode_time:          5320862 us [ 57.77%] (total:         5320862 us [  8.19%])
+                                    interpolation_filter_search_time:           373134 us [  4.05%] (total:          373134 us [  0.57%])
+
+                                    motion_mode_rd_time:          3787993 us [ 41.13%] (total:         3787993 us [  5.83%])
+
+                                    handle_newmv_time:          1127253 us [ 12.24%] (total:         1127253 us [  1.74%])
+
+                                handle_intra_mode_time:          1525985 us [ 16.57%] (total:         1525985 us [  2.35%])
+
+
+                        split_partition_search_time:          1010020 us [ 10.97%] (total:        13084857 us [ 20.15%])
+                            rd_pick_partition_time:          7853169 us [ 85.26%] (total:        56860543 us [ 87.57%])
+                                split_partition_search_time:          1010020 us [ 10.97%] (total:        13084857 us [ 20.15%])
+
+                                    rd_pick_partition_time:          7853169 us [ 85.26%] (total:        56860543 us [ 87.57%])
+                                        split_partition_search_time:          1010020 us [ 10.97%] (total:        13084857 us [ 20.15%])
+
+                                    rd_pick_partition_time:          7853169 us [ 85.26%] (total:        56860543 us [ 87.57%])
+                                        av1_prune_partitions_time:           666326 us [  7.23%] (total:          696318 us [  1.07%])
+
+                                    rd_pick_partition_time:          7853169 us [ 85.26%] (total:        56860543 us [ 87.57%])
+                                        none_partition_search_time:          4128323 us [ 44.82%] (total:        15065239 us [ 23.20%])
+
+                                    rd_pick_partition_time:          7853169 us [ 85.26%] (total:        56860543 us [ 87.57%])
+                                        rectangular_partition_search_time:          1764567 us [ 19.16%] (total:        22308301 us [ 34.36%])
+
+                                    rd_pick_partition_time:          7853169 us [ 85.26%] (total:        56860543 us [ 87.57%])
+                                        ab_partitions_search_time:           558037 us [  6.06%] (total:         5674122 us [  8.74%])
+
+                                    rd_pick_partition_time:          7853169 us [ 85.26%] (total:        56860543 us [ 87.57%])
+                                        rd_pick_4partition_time:           589709 us [  6.40%] (total:        12513925 us [ 19.27%])
+
+

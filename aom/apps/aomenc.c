@@ -2024,9 +2024,55 @@ int main(int argc, const char **argv_) {
   argv = argv_dup(argc - 1, argv_ + 1);
   parse_global_config(&global, &argv);
 
+  if (argc < 2) usage_exit();
+
+  switch (global.color_type) {
+    case I420: input.fmt = AOM_IMG_FMT_I420; break;
+    case I422: input.fmt = AOM_IMG_FMT_I422; break;
+    case I444: input.fmt = AOM_IMG_FMT_I444; break;
+    case YV12: input.fmt = AOM_IMG_FMT_YV12; break;
+  }
+
+  {
+    /* Now parse each stream's parameters. Using a local scope here
+     * due to the use of 'stream' as loop variable in FOREACH_STREAM
+     * loops
+     */
+    struct stream_state *stream = NULL;
+
+    do {
+      stream = new_stream(&global, stream);
+      stream_cnt++;
+      if (!streams) streams = stream;
+    } while (parse_stream_params(&global, stream, argv));
+  }
+
+  /* Check for unrecognized options */
+  for (argi = argv; *argi; argi++)
+    if (argi[0][0] == '-' && argi[0][1])
+      die("Error: Unrecognized option %s\n", *argi);
+
+  FOREACH_STREAM(stream, streams) {
+    check_encoder_config(global.disable_warning_prompt, &global,
+                         &stream->config.cfg);
+
+    // If large_scale_tile = 1, only support to output to ivf format.
+    if (stream->config.cfg.large_scale_tile && !stream->config.write_ivf)
+      die("only support ivf output format while large-scale-tile=1\n");
+  }
+
+  /* Handle non-option arguments */
+  input.filename = argv[0];
+  const char *orig_input_filename = input.filename;
+  FOREACH_STREAM(stream, streams) {
+    stream->orig_out_fn = stream->config.out_fn;
+    stream->orig_width = stream->config.cfg.g_w;
+    stream->orig_height = stream->config.cfg.g_h;
+  }
+
   //@icaro
 
-  FILE *ml_bias = fopen("output_files/bias.csv", "w");
+  FILE *ml_bias = fopen("output_files/bias.csv" , "w");
   FILE *ml_weights = fopen("output_files/weights.csv", "w");
 
   FILE *feat_based_split = fopen("output_files/based_split.csv", "w");
@@ -2184,59 +2230,15 @@ int main(int argc, const char **argv_) {
           ";mi_col ;bsize ;particionado_hor ;particionado_ver \n");
   fclose(feat_prune_4_partition_norm);
 
-  if (argc < 2) usage_exit();
+  //@grellert - alan
+  global.ecl_timers.global_timer = clock();
 
-  switch (global.color_type) {
-    case I420: input.fmt = AOM_IMG_FMT_I420; break;
-    case I422: input.fmt = AOM_IMG_FMT_I422; break;
-    case I444: input.fmt = AOM_IMG_FMT_I444; break;
-    case YV12: input.fmt = AOM_IMG_FMT_YV12; break;
-  }
-
-  {
-    /* Now parse each stream's parameters. Using a local scope here
-     * due to the use of 'stream' as loop variable in FOREACH_STREAM
-     * loops
-     */
-    struct stream_state *stream = NULL;
-
-    do {
-      stream = new_stream(&global, stream);
-      stream_cnt++;
-      if (!streams) streams = stream;
-    } while (parse_stream_params(&global, stream, argv));
-  }
-
-  /* Check for unrecognized options */
-  for (argi = argv; *argi; argi++)
-    if (argi[0][0] == '-' && argi[0][1])
-      die("Error: Unrecognized option %s\n", *argi);
-
-  FOREACH_STREAM(stream, streams) {
-    check_encoder_config(global.disable_warning_prompt, &global,
-                         &stream->config.cfg);
-
-    // If large_scale_tile = 1, only support to output to ivf format.
-    if (stream->config.cfg.large_scale_tile && !stream->config.write_ivf)
-      die("only support ivf output format while large-scale-tile=1\n");
-  }
-
-  /* Handle non-option arguments */
-  input.filename = argv[0];
-  const char *orig_input_filename = input.filename;
-  FOREACH_STREAM(stream, streams) {
-    stream->orig_out_fn = stream->config.out_fn;
-    stream->orig_width = stream->config.cfg.g_w;
-    stream->orig_height = stream->config.cfg.g_h;
-  }
 
   if (!input.filename) {
     fprintf(stderr, "No input file specified!\n");
     usage_exit();
   }
 
-  //@grellert - alan
-  global.ecl_timers.global_timer = clock();
 
   /* Decide if other chroma subsamplings than 4:2:0 are supported */
   if (get_fourcc_by_aom_encoder(global.codec) == AV1_FOURCC)

@@ -88,11 +88,22 @@ typedef struct aom_codec_stream_info {
  * This structure is used to pass init time configuration options to the
  * decoder.
  */
+
+
+// @grellert ECL timers
+typedef struct {
+
+  int block_counter[22];  //@grellert - alan
+
+} ECLCounters;
+
+
 typedef struct aom_codec_dec_cfg {
   unsigned int threads; /**< Maximum number of threads to use, default 1 */
   unsigned int w;       /**< Width */
   unsigned int h;       /**< Height */
   unsigned int allow_lowbitdepth; /**< Allow use of low-bitdepth coding path */
+  ECLCounters *ecl_counters;  //@grellert
 } aom_codec_dec_cfg_t;            /**< alias for struct aom_codec_dec_cfg */
 
 /*!\brief Initialize a decoder instance

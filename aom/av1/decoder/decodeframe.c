@@ -1126,6 +1126,13 @@ static AOM_INLINE void parse_decode_block(AV1Decoder *const pbi,
                                           int mi_col, aom_reader *r,
                                           PARTITION_TYPE partition,
                                           BLOCK_SIZE bsize) {
+  // grellert
+    // BLOCK_SIZE subsize =
+    //     get_partition_subsize(blk_params.bsize, partition_type);
+    // ecltimers->block_counter[blk_params.subsize]++;
+
+  // end grellert
+  
   DecoderCodingBlock *const dcb = &td->dcb;
   MACROBLOCKD *const xd = &dcb->xd;
   decode_mbmi_block(pbi, dcb, mi_row, mi_col, r, partition, bsize);
@@ -1265,6 +1272,9 @@ static AOM_INLINE void decode_partition(AV1Decoder *const pbi,
   BLOCK_SIZE subsize;
   const int quarter_step = bw / 4;
   BLOCK_SIZE bsize2 = get_partition_subsize(bsize, PARTITION_SPLIT);
+
+
+
   const int has_rows = (mi_row + hbs) < cm->mi_params.mi_rows;
   const int has_cols = (mi_col + hbs) < cm->mi_params.mi_cols;
 
@@ -1306,6 +1316,13 @@ static AOM_INLINE void decode_partition(AV1Decoder *const pbi,
     partition = get_partition(cm, mi_row, mi_col, bsize);
   }
   subsize = get_partition_subsize(bsize, partition);
+
+// grellert: contar aqui
+  ECLCounters ecl_counters = 0;
+  ecl_counters->block_counter[subsize]++;
+// 
+
+
   if (subsize == BLOCK_INVALID) {
     aom_internal_error(xd->error_info, AOM_CODEC_CORRUPT_FRAME,
                        "Partition is invalid for block size %dx%d",
