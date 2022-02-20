@@ -1126,28 +1126,20 @@ static AOM_INLINE void parse_decode_block(AV1Decoder *const pbi,
                                           int mi_col, aom_reader *r,
                                           PARTITION_TYPE partition,
                                           BLOCK_SIZE bsize) {
-  // grellert
-    // BLOCK_SIZE subsize =
-    //     get_partition_subsize(blk_params.bsize, partition_type);
-    // ecltimers->block_counter[blk_params.subsize]++;
-
-  // end grellert
-
-  FILE *used_part = fopen("output_files/used_part.csv" , "w");
-  FILE *block_timers = fopen("output_files/block_timers.csv" , "w");
-
-  fprintf(used_part, "%d \n", partition);
-  fclose(used_part);
-
-  fprintf(block_timers, "test \n");
-  fclose(block_timers);
 
   DecoderCodingBlock *const dcb = &td->dcb;
   MACROBLOCKD *const xd = &dcb->xd;
   decode_mbmi_block(pbi, dcb, mi_row, mi_col, r, partition, bsize);
 
   av1_visit_palette(pbi, xd, r, av1_decode_palette_tokens);
+  // grellert
+    // BLOCK_SIZE subsize =
+    //     get_partition_subsize(bsize, partition);
+    // printf("%d %d %d\n",bsize, partition, subsize);
+    // ecltimers->block_counter[blk_params.subsize]++;
 
+
+  // end grellert
   AV1_COMMON *cm = &pbi->common;
   const int num_planes = av1_num_planes(cm);
   MB_MODE_INFO *mbmi = xd->mi[0];
@@ -1281,7 +1273,7 @@ static AOM_INLINE void decode_partition(AV1Decoder *const pbi,
   BLOCK_SIZE subsize;
   const int quarter_step = bw / 4;
   BLOCK_SIZE bsize2 = get_partition_subsize(bsize, PARTITION_SPLIT);
-
+  time_t start_time = clock();
 
 
   const int has_rows = (mi_row + hbs) < cm->mi_params.mi_rows;
@@ -1416,7 +1408,20 @@ static AOM_INLINE void decode_partition(AV1Decoder *const pbi,
 
   if (parse_decode_flag & 1)
     update_ext_partition_context(xd, mi_row, mi_col, subsize, bsize, partition);
+
+  time_t end_time = clock();
+
+  // BLOCK_SIZE subsize =
+  //   get_partition_subsize(bsize, partition);
+  const print = "%d %d %d, time: %f(s)\n",bsize, partition, subsize, (float)(end_time-start_time)/CLOCKS_PER_SEC;
+
+  FILE *used_part = fopen("output_files/used_part.csv" , "w");
+
+  fprintf(used_part, "%s \n", print);
+  fclose(used_part);
+
 }
+
 
 static AOM_INLINE void setup_bool_decoder(
     const uint8_t *data, const uint8_t *data_end, const size_t read_size,
