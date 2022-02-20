@@ -318,7 +318,7 @@ void aom_upsampled_pred_c(MACROBLOCKD *xd, const AV1_COMMON *const cm,
     }
   }
 
-  const InterpFilterParams *filter = av1_get_filter(subpel_search);
+  const InterpFilterParams *filter = av1_get_filter(subpel_search,0);
 
   if (!subpel_x_q3 && !subpel_y_q3) {
     for (int i = 0; i < height; i++) {
@@ -861,7 +861,7 @@ void aom_highbd_upsampled_pred_c(MACROBLOCKD *xd,
     }
   }
 
-  const InterpFilterParams *filter = av1_get_filter(subpel_search);
+  const InterpFilterParams *filter = av1_get_filter(subpel_search,0);
 
   if (!subpel_x_q3 && !subpel_y_q3) {
     const uint16_t *ref = CONVERT_TO_SHORTPTR(ref8);

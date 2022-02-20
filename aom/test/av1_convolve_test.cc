@@ -336,7 +336,7 @@ class AV1ConvolveXTest : public AV1ConvolveTest<convolve_x_func> {
     const int width = GetParam().Block().Width();
     const int height = GetParam().Block().Height();
     const InterpFilterParams *filter_params_x =
-        av1_get_interp_filter_params_with_block_size(filter, width);
+        av1_get_interp_filter_params_with_block_size(filter, width,0);
     ConvolveParams conv_params1 = get_conv_params_no_round(0, 0, NULL, 0, 0, 8);
     const uint8_t *input = FirstRandomInput8(GetParam());
     DECLARE_ALIGNED(32, uint8_t, reference[MAX_SB_SQUARE]);
@@ -398,7 +398,7 @@ class AV1ConvolveXHighbdTest : public AV1ConvolveTest<highbd_convolve_x_func> {
     const int height = GetParam().Block().Height();
     const int bit_depth = GetParam().BitDepth();
     const InterpFilterParams *filter_params_x =
-        av1_get_interp_filter_params_with_block_size(filter, width);
+        av1_get_interp_filter_params_with_block_size(filter, width,0);
     ConvolveParams conv_params1 =
         get_conv_params_no_round(0, 0, NULL, 0, 0, bit_depth);
     const uint16_t *input = FirstRandomInput16(GetParam());
@@ -459,7 +459,7 @@ class AV1ConvolveYTest : public AV1ConvolveTest<convolve_y_func> {
     const int height = GetParam().Block().Height();
 
     const InterpFilterParams *filter_params_y =
-        av1_get_interp_filter_params_with_block_size(filter, height);
+        av1_get_interp_filter_params_with_block_size(filter, height,0);
     const uint8_t *input = FirstRandomInput8(GetParam());
     DECLARE_ALIGNED(32, uint8_t, reference[MAX_SB_SQUARE]);
     av1_convolve_y_sr(input, width, reference, kOutputStride, width, height,
@@ -518,7 +518,7 @@ class AV1ConvolveYHighbdTest : public AV1ConvolveTest<highbd_convolve_y_func> {
     const int height = GetParam().Block().Height();
     const int bit_depth = GetParam().BitDepth();
     const InterpFilterParams *filter_params_y =
-        av1_get_interp_filter_params_with_block_size(filter, height);
+        av1_get_interp_filter_params_with_block_size(filter, height,0);
     const uint16_t *input = FirstRandomInput16(GetParam());
     DECLARE_ALIGNED(32, uint16_t, reference[MAX_SB_SQUARE]);
     av1_highbd_convolve_y_sr(input, width, reference, kOutputStride, width,
@@ -673,9 +673,9 @@ class AV1Convolve2DTest : public AV1ConvolveTest<convolve_2d_func> {
     const int width = GetParam().Block().Width();
     const int height = GetParam().Block().Height();
     const InterpFilterParams *filter_params_x =
-        av1_get_interp_filter_params_with_block_size(h_f, width);
+        av1_get_interp_filter_params_with_block_size(h_f, width,0);
     const InterpFilterParams *filter_params_y =
-        av1_get_interp_filter_params_with_block_size(v_f, height);
+        av1_get_interp_filter_params_with_block_size(v_f, height,0);
     const uint8_t *input = FirstRandomInput8(GetParam());
     DECLARE_ALIGNED(32, uint8_t, reference[MAX_SB_SQUARE]);
     ConvolveParams conv_params1 = get_conv_params_no_round(0, 0, NULL, 0, 0, 8);
@@ -745,9 +745,9 @@ class AV1Convolve2DHighbdTest
     const int height = GetParam().Block().Height();
     const int bit_depth = GetParam().BitDepth();
     const InterpFilterParams *filter_params_x =
-        av1_get_interp_filter_params_with_block_size(h_f, width);
+        av1_get_interp_filter_params_with_block_size(h_f, width,0);
     const InterpFilterParams *filter_params_y =
-        av1_get_interp_filter_params_with_block_size(v_f, height);
+        av1_get_interp_filter_params_with_block_size(v_f, height,0);
     const uint16_t *input = FirstRandomInput16(GetParam());
     DECLARE_ALIGNED(32, uint16_t, reference[MAX_SB_SQUARE]);
     ConvolveParams conv_params1 =
@@ -928,7 +928,7 @@ class AV1ConvolveXCompoundTest : public AV1ConvolveTest<convolve_x_func> {
  protected:
   virtual const InterpFilterParams *FilterParams(InterpFilter f,
                                                  const BlockSize &block) const {
-    return av1_get_interp_filter_params_with_block_size(f, block.Width());
+    return av1_get_interp_filter_params_with_block_size(f, block.Width(),0);
   }
 
   virtual convolve_x_func ReferenceFunc() const {
@@ -1018,7 +1018,7 @@ class AV1ConvolveXHighbdCompoundTest
  protected:
   virtual const InterpFilterParams *FilterParams(InterpFilter f,
                                                  const BlockSize &block) const {
-    return av1_get_interp_filter_params_with_block_size(f, block.Width());
+    return av1_get_interp_filter_params_with_block_size(f, block.Width(),0);
   }
 
   virtual highbd_convolve_x_func ReferenceFunc() const {
@@ -1097,7 +1097,7 @@ class AV1ConvolveYCompoundTest : public AV1ConvolveXCompoundTest {
  protected:
   virtual const InterpFilterParams *FilterParams(
       InterpFilter f, const BlockSize &block) const override {
-    return av1_get_interp_filter_params_with_block_size(f, block.Height());
+    return av1_get_interp_filter_params_with_block_size(f, block.Height(),0);
   }
 
   virtual convolve_x_func ReferenceFunc() const override {
@@ -1137,7 +1137,7 @@ class AV1ConvolveYHighbdCompoundTest : public AV1ConvolveXHighbdCompoundTest {
   }
   virtual const InterpFilterParams *FilterParams(
       InterpFilter f, const BlockSize &block) const override {
-    return av1_get_interp_filter_params_with_block_size(f, block.Height());
+    return av1_get_interp_filter_params_with_block_size(f, block.Height(),0);
   }
 };
 
@@ -1378,9 +1378,9 @@ class AV1Convolve2DCompoundTest : public AV1ConvolveTest<convolve_2d_func> {
     const int height = block.Height();
 
     const InterpFilterParams *filter_params_x =
-        av1_get_interp_filter_params_with_block_size(h_f, width);
+        av1_get_interp_filter_params_with_block_size(h_f, width,0);
     const InterpFilterParams *filter_params_y =
-        av1_get_interp_filter_params_with_block_size(v_f, height);
+        av1_get_interp_filter_params_with_block_size(v_f, height,0);
     ConvolveParams conv_params =
         GetConvolveParams(0, conv_buf, kOutputStride, 8, compound);
 
@@ -1476,9 +1476,9 @@ class AV1Convolve2DHighbdCompoundTest
     const int height = block.Height();
 
     const InterpFilterParams *filter_params_x =
-        av1_get_interp_filter_params_with_block_size(h_f, width);
+        av1_get_interp_filter_params_with_block_size(h_f, width,0);
     const InterpFilterParams *filter_params_y =
-        av1_get_interp_filter_params_with_block_size(v_f, height);
+        av1_get_interp_filter_params_with_block_size(v_f, height,0);
     const int bit_depth = GetParam().BitDepth();
     ConvolveParams conv_params =
         GetConvolveParams(0, conv_buf, kOutputStride, bit_depth, compound);

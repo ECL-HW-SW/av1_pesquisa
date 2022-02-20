@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
 #define MAX_FILTER_TAP 8
-
+#define USE_APPROX_FILTERS 1 // @Daiane aqui seta o uso de filtros
 typedef enum ATTRIBUTE_PACKED {
   EIGHTTAP_REGULAR,
   EIGHTTAP_SMOOTH,
@@ -130,6 +130,18 @@ DECLARE_ALIGNED(256, static const InterpKernel,
 };
 
 DECLARE_ALIGNED(256, static const InterpKernel,
+                av1_sub_pel_filters_8_approx1[SUBPEL_SHIFTS]) = {
+  { 0, 0, 0, 128, 0, 0, 0, 0 },      {  0, 0, 0, 128, 0, 0, 0, 0 },
+  {  0, 0, 0, 128, 0, 0, 0, 0 },  {  0, 0, 0, 128, 0, 0, 0, 0},
+  {  0, 0, 0, 128, 0, 0, 0, 0 }, {  0, 0, 0, 128, 0, 0, 0, 0},
+  {  0, 0, 0, 128, 0, 0, 0, 0 },  { 0, 0, 0, 128, 0, 0, 0, 0 },
+  {  0, 0, 0, 128, 0, 0, 0, 0},  { 0, 0, 0, 128, 0, 0, 0, 0 },
+  { 0, 0, 0, 128, 0, 0, 0, 0 },  { 0, 0, 0, 128, 0, 0, 0, 0},
+  {  0, 0, 0, 128, 0, 0, 0, 0 }, {  0, 0, 0, 128, 0, 0, 0, 0},
+  { 0, 0, 0, 128, 0, 0, 0, 0 },  {  0, 0, 0, 128, 0, 0, 0, 0 }
+};
+
+DECLARE_ALIGNED(256, static const InterpKernel,
                 av1_sub_pel_filters_8sharp[SUBPEL_SHIFTS]) = {
   { 0, 0, 0, 128, 0, 0, 0, 0 },         { -2, 2, -6, 126, 8, -2, 2, 0 },
   { -2, 6, -12, 124, 16, -6, 4, -2 },   { -2, 8, -18, 120, 26, -10, 6, -2 },
@@ -156,6 +168,16 @@ DECLARE_ALIGNED(256, static const InterpKernel,
 static const InterpFilterParams
     av1_interp_filter_params_list[SWITCHABLE_FILTERS + 1] = {
       { (const int16_t *)av1_sub_pel_filters_8, SUBPEL_TAPS, EIGHTTAP_REGULAR },
+      { (const int16_t *)av1_sub_pel_filters_8smooth, SUBPEL_TAPS,
+        EIGHTTAP_SMOOTH },
+      { (const int16_t *)av1_sub_pel_filters_8sharp, SUBPEL_TAPS,
+        MULTITAP_SHARP },
+      { (const int16_t *)av1_bilinear_filters, SUBPEL_TAPS, BILINEAR }
+    };
+
+static const InterpFilterParams
+    av1_interp_filter_params_list_approx[SWITCHABLE_FILTERS + 1] = {
+      { (const int16_t *)av1_sub_pel_filters_8_approx1, SUBPEL_TAPS, EIGHTTAP_REGULAR },
       { (const int16_t *)av1_sub_pel_filters_8smooth, SUBPEL_TAPS,
         EIGHTTAP_SMOOTH },
       { (const int16_t *)av1_sub_pel_filters_8sharp, SUBPEL_TAPS,
@@ -219,19 +241,25 @@ static const InterpFilterParams av1_interp_4tap[SWITCHABLE_FILTERS + 1] = {
 
 static INLINE const InterpFilterParams *
 av1_get_interp_filter_params_with_block_size(const InterpFilter interp_filter,
-                                             const int w) {
+                                             const int w, const int use_approx_filters) {
   if (w <= 4) return &av1_interp_4tap[interp_filter];
-  return &av1_interp_filter_params_list[interp_filter];
+  if (use_approx_filters == 1)
+    return &av1_interp_filter_params_list_approx[interp_filter];
+  else
+    return &av1_interp_filter_params_list[interp_filter];
 }
 
 static INLINE const int16_t *av1_get_interp_filter_kernel(
-    const InterpFilter interp_filter, int subpel_search) {
+    const InterpFilter interp_filter, int subpel_search, int use_approx_filters) {
   assert(subpel_search >= USE_2_TAPS);
-  return (subpel_search == USE_2_TAPS)
-             ? av1_interp_4tap[BILINEAR].filter_ptr
-             : ((subpel_search == USE_4_TAPS)
-                    ? av1_interp_4tap[interp_filter].filter_ptr
-                    : av1_interp_filter_params_list[interp_filter].filter_ptr);
+  if (subpel_search == USE_2_TAPS)
+    return av1_interp_4tap[BILINEAR].filter_ptr;
+  else if (subpel_search == USE_4_TAPS)
+     return av1_interp_4tap[interp_filter].filter_ptr;
+  else if (use_approx_filters)
+    return av1_interp_filter_params_list_approx[interp_filter].filter_ptr;
+  else
+    return av1_interp_filter_params_list[interp_filter].filter_ptr;
 }
 
 static INLINE const int16_t *av1_get_interp_filter_subpel_kernel(
@@ -239,13 +267,17 @@ static INLINE const int16_t *av1_get_interp_filter_subpel_kernel(
   return filter_params->filter_ptr + filter_params->taps * subpel;
 }
 
-static INLINE const InterpFilterParams *av1_get_filter(int subpel_search) {
+static INLINE const InterpFilterParams *av1_get_filter(int subpel_search, int use_approx_filters) {
   assert(subpel_search >= USE_2_TAPS);
 
   switch (subpel_search) {
     case USE_2_TAPS: return &av1_interp_4tap[BILINEAR];
     case USE_4_TAPS: return &av1_interp_4tap[EIGHTTAP_REGULAR];
-    case USE_8_TAPS: return &av1_interp_filter_params_list[EIGHTTAP_REGULAR];
+    case USE_8_TAPS: 
+        if (use_approx_filters)
+          return &av1_interp_filter_params_list_approx[EIGHTTAP_REGULAR];
+        else
+          return &av1_interp_filter_params_list[EIGHTTAP_REGULAR];
     default: assert(0); return NULL;
   }
 }
