@@ -6,6 +6,8 @@ aom/.vscode
 
 aom/output_files
 
+aom/scripts/*/
+
 .vscode
 
 output

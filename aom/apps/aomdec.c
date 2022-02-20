@@ -1022,6 +1022,17 @@ int main(int argc, const char **argv_) {
   struct arg arg;
   int error = 0;
 
+  //@icaro
+
+  FILE *used_part = fopen("output_files/used_part.csv" , "w");
+  FILE *block_timers = fopen("output_files/block_timers.csv" , "w");
+
+  fprintf(used_part,"test \n");
+  fclose(used_part);
+
+  fprintf(block_timers,"test \n");
+  fclose(block_timers);
+
   argv = argv_dup(argc - 1, argv_ + 1);
   for (argi = argj = argv; (*argj = *argi); argi += arg.argv_step) {
     memset(&arg, 0, sizeof(arg));

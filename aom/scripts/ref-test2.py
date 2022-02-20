@@ -5,6 +5,11 @@ params = ["all_disable",
         "set_disable_prune_partitions_after_none",
         "set_disable_prune_partitions_after_split",
         "set_disable_prune_partitions_before_search",
+        "set_minpartitionsize8",
+        "set_minpartitionsize16",
+        "set_minpartitionsize32",
+        "set_minpartitionsize64",
+        "set_minpartitionsize128",
 ]
 
 out =  open('./total_bdbr.csv','w')
@@ -20,8 +25,12 @@ tlines = csv_test.readlines()
 
 for param in params:
     x=0
+    i=1
     for lines in linhas:
-        lines = linhas[x]
+        try:
+            lines = linhas[i]
+        except IndexError:
+            continue
 
         print(lines)
         if ";orig;" in lines:
@@ -58,9 +67,13 @@ for param in params:
                 nome22t,conf,cq,yuv22t,y22t,u22t,v22t,b22t,t22t,dummy2 = lines.split(";")
                 y22t,u22t,v22t,yuv22t,b22t,t22t = map(float,[y22t,u22t,v22t,yuv22t,b22t,t22t])
 
-        num = x/24
+        num = x/43
         num = str(num)
+        x+=1
+        i+=1
         if num.split('.')[1] == '0' and num.split('.')[0] != '0':
+            x=0
+            print('\n\nIN\n\n')
             ref = [[b22,y22,u22,v22,yuv22],[b27,y27,u27,v27,yuv27],[b32,y32,u32,v32,yuv32],[b37,y37,u37,v37,yuv37]]
             
             test = [[b22t,y22t,u22t,v22t,yuv22t],[b27t,y27t,u27t,v27t,yuv27t],[b32t,y32t,u32t,v32t,yuv32t],[b37t,y37t,u37t,v37t,yuv37t]]
@@ -71,7 +84,6 @@ for param in params:
 
             bdb = bdbr(ref,test,1)
             bdp = bdpsnr(ref,test,1) 
-            plotRDCurves(ref,test,1,"./Curva%s_%s.pdf"%(n,param),n)
+            # plotRDCurves(ref,test,1,"./Curva%s_%s.pdf"%(n,param),n)
             line = str(n) + ';' + str(bdb) + ';' + str(bdp) + ';' + str(dt) + ';\n'
             out.write(line)
-        x+=1

@@ -93,7 +93,7 @@ cqs = len(CQS)
 
 for folder in folders:
 
-    if '__' in folder or 'output_files' in folder or '.ipynb' in folder:
+    if '__' in folder or 'output_files' in folder or '.ipynb' in folder or 'NN' in folder:
         ps-=1
         continue
 

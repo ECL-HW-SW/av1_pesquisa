@@ -1132,7 +1132,16 @@ static AOM_INLINE void parse_decode_block(AV1Decoder *const pbi,
     // ecltimers->block_counter[blk_params.subsize]++;
 
   // end grellert
-  
+
+  FILE *used_part = fopen("output_files/used_part.csv" , "w");
+  FILE *block_timers = fopen("output_files/block_timers.csv" , "w");
+
+  fprintf(used_part, "%d \n", partition);
+  fclose(used_part);
+
+  fprintf(block_timers, "test \n");
+  fclose(block_timers);
+
   DecoderCodingBlock *const dcb = &td->dcb;
   MACROBLOCKD *const xd = &dcb->xd;
   decode_mbmi_block(pbi, dcb, mi_row, mi_col, r, partition, bsize);
@@ -1318,8 +1327,8 @@ static AOM_INLINE void decode_partition(AV1Decoder *const pbi,
   subsize = get_partition_subsize(bsize, partition);
 
 // grellert: contar aqui
-  ECLCounters ecl_counters = 0;
-  ecl_counters->block_counter[subsize]++;
+  // ECLCounters ecl_counters = 0;
+  // ecl_counters->block_counter[subsize]++;
 // 
 
 
