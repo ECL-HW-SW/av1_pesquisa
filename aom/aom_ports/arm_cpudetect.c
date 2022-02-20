@@ -11,8 +11,10 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "aom_ports/arm.h"
 #include "config/aom_config.h"
+#define HAVE_NEON 0
 
 #ifdef WINAPI_FAMILY
 #include <winapifamily.h>
@@ -20,6 +22,7 @@
 #define getenv(x) NULL
 #endif
 #endif
+
 
 static int arm_cpu_env_flags(int *flags) {
   char *env;
@@ -145,6 +148,6 @@ int aom_arm_cpu_caps(void) {
 }
 #else  /* end __linux__ */
 #error \
-    "--enable-runtime-cpu-detect selected, but no CPU detection method " \
+    "--enable-runtime-cpu-detect selected, but no CPU detection method" \
 "available for your platform. Reconfigure with --disable-runtime-cpu-detect."
 #endif

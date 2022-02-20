@@ -168,7 +168,7 @@ static INLINE int64_t interpolation_filter_rd(
   MACROBLOCKD *const xd = &x->e_mbd;
   MB_MODE_INFO *const mbmi = xd->mi[0];
   RD_STATS this_rd_stats_luma, this_rd_stats;
-
+  printf("interpolation_filter_rd\n");
   // Initialize rd_stats structures to default values.
   av1_init_rd_stats(&this_rd_stats_luma);
   this_rd_stats = *rd_stats_luma;
@@ -317,7 +317,7 @@ static DUAL_FILTER_TYPE find_best_interp_rd_facade(
     const int skip_pred, uint16_t allow_interp_mask, int is_w4_or_h4) {
   int tmp_skip_pred = skip_pred;
   DUAL_FILTER_TYPE best_filt_type = REG_REG;
-
+  printf("find_best_interp_rd_facade\n");
   // If no filter are set to be evaluated, return from function
   if (allow_interp_mask == 0x0) return best_filt_type;
   // For block width or height is 4, skip the pred evaluation of SHARP_SHARP
@@ -337,6 +337,7 @@ static DUAL_FILTER_TYPE find_best_interp_rd_facade(
         best_filt_type = filt_type;
     tmp_skip_pred = skip_pred;
   }
+  printf("?");
   return best_filt_type;
 }
 
@@ -352,7 +353,7 @@ static INLINE void pred_dual_interp_filter_rd(
   assert(pred_filt_type > INTERP_HORZ_NEQ_VERT_NEQ);
   assert(pred_filt_type < INTERP_PRED_TYPE_ALL);
   uint16_t allowed_interp_mask = 0;
-
+  printf("pred_dual_interp_filter_rd\n");
   if (pred_filt_type == INTERP_HORZ_EQ_VERT_NEQ) {
     // pred_filter_search = 1: Only horizontal filter is matching
     allowed_interp_mask =
@@ -390,7 +391,7 @@ static INLINE void fast_dual_interp_filter_rd(
   INTERP_PRED_TYPE pred_filter_type = INTERP_HORZ_NEQ_VERT_NEQ;
   int_interpfilters af = av1_broadcast_interp_filter(INTERP_INVALID);
   int_interpfilters lf = af;
-
+  printf("fast_dual_interp_filter_rd\n");
   if (!have_newmv_in_inter_mode(mbmi->mode)) {
     pred_filter_type = is_pred_filter_search_allowed(cpi, xd, bsize, &af, &lf);
   }
@@ -444,7 +445,7 @@ static INLINE void find_best_non_dual_interp_filter(
 
   uint16_t interp_filter_search_mask =
       interp_search_flags->interp_filter_search_mask;
-
+  printf("find_best_non_dual_interp_filter\n");
   if (cpi->sf.interp_sf.adaptive_interp_filter_search == 2) {
     const FRAME_UPDATE_TYPE update_type = get_frame_update_type(&cpi->gf_group);
     const int ctx0 = av1_get_pred_context_switchable_interp(xd, 0);
@@ -466,7 +467,7 @@ static INLINE void find_best_non_dual_interp_filter(
       }
     }
   }
-
+ printf("?");
   // Regular filter evaluation should have been done and hence the same should
   // be the winner
   assert(x->e_mbd.mi[0]->interp_filters.as_int == filter_sets[0].as_int);

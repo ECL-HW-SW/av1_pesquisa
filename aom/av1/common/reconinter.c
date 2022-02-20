@@ -83,10 +83,10 @@ void av1_init_inter_params(InterPredParams *inter_pred_params, int block_width,
   } else {
     inter_pred_params->interp_filter_params[0] =
         av1_get_interp_filter_params_with_block_size(
-            interp_filters.as_filters.x_filter, block_width);
+            interp_filters.as_filters.x_filter, block_width,0);
     inter_pred_params->interp_filter_params[1] =
         av1_get_interp_filter_params_with_block_size(
-            interp_filters.as_filters.y_filter, block_height);
+            interp_filters.as_filters.y_filter, block_height,0);
   }
 }
 
