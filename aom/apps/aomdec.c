@@ -473,6 +473,13 @@ static int main_loop(int argc, const char **argv_) {
   MD5Context md5_ctx;
   unsigned char md5_digest[16];
 
+  //@icaro
+
+  FILE *used_part = fopen("output_files/used_part.csv" , "w");
+
+  fprintf(used_part,"bsize; partition; subsize; time \n");
+  fclose(used_part);
+
   struct AvxDecInputContext input = { NULL, NULL, NULL };
   struct AvxInputContext aom_input_ctx;
   memset(&aom_input_ctx, 0, sizeof(aom_input_ctx));
@@ -1021,13 +1028,6 @@ int main(int argc, const char **argv_) {
   char **argv, **argi, **argj;
   struct arg arg;
   int error = 0;
-
-  //@icaro
-
-  FILE *used_part = fopen("output_files/used_part.csv" , "w");
-
-  fprintf(used_part,"bsize; partition; subsize; time \n");
-  fclose(used_part);
 
   argv = argv_dup(argc - 1, argv_ + 1);
   for (argi = argj = argv; (*argj = *argi); argi += arg.argv_step) {

@@ -1,3 +1,1 @@
 (nosplit) ;(nosplit) ;(split1) ;(split1) ;(split2) ;(split2) ;(split3) ;(split3) ;(split4) ;(split4) ;(rect1) ;(rect2) ;(rect3) ;(rect4) ;(rect5) ;(rect6) ;(rect7) ;(rect8) ;(dc_q * dc_q) / 256.0f ;has_above ;mi_size_wide_log2(above) ;mi_size_high_log2(above) ;has_left ;mi_size_wide_log2(left) ;mi_size_high_log2(left) ;rate; dist; rdcost ;frame_num ;mi_row ;mi_col ;bsize ;particionado 
-1;0;0;15;0;
-1;0;0;12;0;

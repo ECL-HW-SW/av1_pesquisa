@@ -1273,8 +1273,8 @@ static AOM_INLINE void decode_partition(AV1Decoder *const pbi,
   BLOCK_SIZE subsize;
   const int quarter_step = bw / 4;
   BLOCK_SIZE bsize2 = get_partition_subsize(bsize, PARTITION_SPLIT);
-  time_t start_time = clock();
 
+  time_t start_time = clock();
 
   const int has_rows = (mi_row + hbs) < cm->mi_params.mi_rows;
   const int has_cols = (mi_col + hbs) < cm->mi_params.mi_cols;
@@ -1413,11 +1413,10 @@ static AOM_INLINE void decode_partition(AV1Decoder *const pbi,
 
   // BLOCK_SIZE subsize =
   //   get_partition_subsize(bsize, partition);
-  const print = "%d %d %d, time: %f(s)\n",bsize, partition, subsize, (float)(end_time-start_time)/CLOCKS_PER_SEC;
 
-  FILE *used_part = fopen("output_files/used_part.csv" , "w");
+  FILE *used_part = fopen("output_files/used_part.csv" , "a");
 
-  fprintf(used_part, "%s \n", print);
+  fprintf(used_part, "%d; %d; %d; %f\n",bsize, partition, subsize, (float)(end_time-start_time)/CLOCKS_PER_SEC);
   fclose(used_part);
 
 }
