@@ -26,7 +26,7 @@ static AOM_INLINE int set_deltaq_rdmult(const AV1_COMP *const cpi,
                                       quant_params->y_dc_delta_q);
 }
 
-void av1_set_ssim_rdmult(const AV1_COMP *const cpi, MvCosts *const mv_costs,
+void av1_set_ssim_rdmult(const AV1_COMP *const cpi, int *errorperbit,
                          const BLOCK_SIZE bsize, const int mi_row,
                          const int mi_col, int *const rdmult) {
   const AV1_COMMON *const cm = &cpi->common;
@@ -58,8 +58,28 @@ void av1_set_ssim_rdmult(const AV1_COMP *const cpi, MvCosts *const mv_costs,
 
   *rdmult = (int)((double)(*rdmult) * geom_mean_of_scale + 0.5);
   *rdmult = AOMMAX(*rdmult, 0);
-  av1_set_error_per_bit(mv_costs, *rdmult);
+  av1_set_error_per_bit(errorperbit, *rdmult);
   aom_clear_system_state();
+}
+
+// Return the end column for the current superblock, in unit of TPL blocks.
+static int get_superblock_tpl_column_end(const AV1_COMMON *const cm, int mi_col,
+                                         int num_mi_w) {
+  // Find the start column of this superblock.
+  const int sb_mi_col_start = (mi_col >> cm->seq_params.mib_size_log2)
+                              << cm->seq_params.mib_size_log2;
+  // Same but in superres upscaled dimension.
+  const int sb_mi_col_start_sr =
+      coded_to_superres_mi(sb_mi_col_start, cm->superres_scale_denominator);
+  // Width of this superblock in mi units.
+  const int sb_mi_width = mi_size_wide[cm->seq_params.sb_size];
+  // Same but in superres upscaled dimension.
+  const int sb_mi_width_sr =
+      coded_to_superres_mi(sb_mi_width, cm->superres_scale_denominator);
+  // Superblock end in mi units.
+  const int sb_mi_end = sb_mi_col_start_sr + sb_mi_width_sr;
+  // Superblock end in TPL units.
+  return (sb_mi_end + num_mi_w - 1) / num_mi_w;
 }
 
 int av1_get_hier_tpl_rdmult(const AV1_COMP *const cpi, MACROBLOCK *const x,
@@ -68,31 +88,42 @@ int av1_get_hier_tpl_rdmult(const AV1_COMP *const cpi, MACROBLOCK *const x,
   const AV1_COMMON *const cm = &cpi->common;
   const GF_GROUP *const gf_group = &cpi->gf_group;
   assert(IMPLIES(cpi->gf_group.size > 0,
-                 cpi->gf_group.index < cpi->gf_group.size));
-  const int tpl_idx = cpi->gf_group.index;
-  const TplDepFrame *tpl_frame = &cpi->tpl_data.tpl_frame[tpl_idx];
+                 cpi->gf_frame_index < cpi->gf_group.size));
+  const int tpl_idx = cpi->gf_frame_index;
   const int deltaq_rdmult = set_deltaq_rdmult(cpi, x);
-  if (tpl_frame->is_valid == 0) return deltaq_rdmult;
-  if (!is_frame_tpl_eligible(gf_group, gf_group->index)) return deltaq_rdmult;
   if (tpl_idx >= MAX_TPL_FRAME_IDX) return deltaq_rdmult;
-  if (cpi->superres_mode != AOM_SUPERRES_NONE) return deltaq_rdmult;
+  const TplDepFrame *tpl_frame = &cpi->tpl_data.tpl_frame[tpl_idx];
+  if (tpl_frame->is_valid == 0) return deltaq_rdmult;
+  if (!is_frame_tpl_eligible(gf_group, cpi->gf_frame_index))
+    return deltaq_rdmult;
   if (cpi->oxcf.q_cfg.aq_mode != NO_AQ) return deltaq_rdmult;
+
+  const int mi_col_sr =
+      coded_to_superres_mi(mi_col, cm->superres_scale_denominator);
+  const int mi_cols_sr = av1_pixels_to_mi(cm->superres_upscaled_width);
+  const int block_mi_width_sr =
+      coded_to_superres_mi(mi_size_wide[bsize], cm->superres_scale_denominator);
 
   const int bsize_base = BLOCK_16X16;
   const int num_mi_w = mi_size_wide[bsize_base];
   const int num_mi_h = mi_size_high[bsize_base];
-  const int num_cols = (cm->mi_params.mi_cols + num_mi_w - 1) / num_mi_w;
+  const int num_cols = (mi_cols_sr + num_mi_w - 1) / num_mi_w;
   const int num_rows = (cm->mi_params.mi_rows + num_mi_h - 1) / num_mi_h;
-  const int num_bcols = (mi_size_wide[bsize] + num_mi_w - 1) / num_mi_w;
+  const int num_bcols = (block_mi_width_sr + num_mi_w - 1) / num_mi_w;
   const int num_brows = (mi_size_high[bsize] + num_mi_h - 1) / num_mi_h;
+  // This is required because the end col of superblock may be off by 1 in case
+  // of superres.
+  const int sb_bcol_end = get_superblock_tpl_column_end(cm, mi_col, num_mi_w);
   int row, col;
   double base_block_count = 0.0;
   double geom_mean_of_scale = 0.0;
   aom_clear_system_state();
   for (row = mi_row / num_mi_w;
        row < num_rows && row < mi_row / num_mi_w + num_brows; ++row) {
-    for (col = mi_col / num_mi_h;
-         col < num_cols && col < mi_col / num_mi_h + num_bcols; ++col) {
+    for (col = mi_col_sr / num_mi_h;
+         col < num_cols && col < mi_col_sr / num_mi_h + num_bcols &&
+         col < sb_bcol_end;
+         ++col) {
       const int index = row * num_cols + col;
       geom_mean_of_scale += log(cpi->tpl_sb_rdmult_scaling_factors[index]);
       base_block_count += 1.0;
@@ -101,7 +132,7 @@ int av1_get_hier_tpl_rdmult(const AV1_COMP *const cpi, MACROBLOCK *const x,
   geom_mean_of_scale = exp(geom_mean_of_scale / base_block_count);
   int rdmult = (int)((double)orig_rdmult * geom_mean_of_scale + 0.5);
   rdmult = AOMMAX(rdmult, 0);
-  av1_set_error_per_bit(&x->mv_costs, rdmult);
+  av1_set_error_per_bit(&x->errorperbit, rdmult);
   aom_clear_system_state();
   if (bsize == cm->seq_params.sb_size) {
     const int rdmult_sb = set_deltaq_rdmult(cpi, x);
@@ -189,7 +220,7 @@ void av1_update_state(const AV1_COMP *const cpi, ThreadData *td,
   assert(mi->bsize == bsize);
 
   *mi_addr = *mi;
-  copy_mbmi_ext_frame_to_mbmi_ext(x->mbmi_ext, &ctx->mbmi_ext_best,
+  copy_mbmi_ext_frame_to_mbmi_ext(&x->mbmi_ext, &ctx->mbmi_ext_best,
                                   av1_ref_frame_type(ctx->mic.ref_frame));
 
   memcpy(txfm_info->blk_skip, ctx->blk_skip,
@@ -226,12 +257,24 @@ void av1_update_state(const AV1_COMP *const cpi, ThreadData *td,
     // Else for cyclic refresh mode update the segment map, set the segment id
     // and then update the quantizer.
     if (cpi->oxcf.q_cfg.aq_mode == CYCLIC_REFRESH_AQ) {
-      av1_cyclic_refresh_update_segment(cpi, mi_addr, mi_row, mi_col, bsize,
+      av1_cyclic_refresh_update_segment(cpi, x, mi_row, mi_col, bsize,
                                         ctx->rd_stats.rate, ctx->rd_stats.dist,
-                                        txfm_info->skip_txfm);
+                                        txfm_info->skip_txfm, dry_run);
     }
     if (mi_addr->uv_mode == UV_CFL_PRED && !is_cfl_allowed(xd))
       mi_addr->uv_mode = UV_DC_PRED;
+  }
+
+  // Count zero motion vector.
+  if (!dry_run && cpi->oxcf.q_cfg.aq_mode == CYCLIC_REFRESH_AQ &&
+      !frame_is_intra_only(cm)) {
+    const MV mv = mi->mv[0].as_mv;
+    if (is_inter_block(mi) && mi->ref_frame[0] == LAST_FRAME &&
+        abs(mv.row) < 8 && abs(mv.col) < 8) {
+      const int ymis = AOMMIN(cm->mi_params.mi_rows - mi_row, bh);
+      // Accumulate low_content_frame.
+      for (int mi_y = 0; mi_y < ymis; mi_y += 2) x->cnt_zeromv += bw << 1;
+    }
   }
 
   for (i = 0; i < num_planes; ++i) {
@@ -286,12 +329,6 @@ void av1_update_state(const AV1_COMP *const cpi, ThreadData *td,
   }
 #endif
   if (!frame_is_intra_only(cm)) {
-    if (is_inter_block(mi_addr)) {
-      // TODO(sarahparker): global motion stats need to be handled per-tile
-      // to be compatible with tile-based threading.
-      update_global_motion_used(mi_addr->mode, bsize, mi_addr, rdc);
-    }
-
     if (cm->features.interp_filter == SWITCHABLE &&
         mi_addr->motion_mode != WARPED_CAUSAL &&
         !is_nontrans_global_motion(xd, xd->mi[0])) {
@@ -648,23 +685,23 @@ int av1_get_rdmult_delta(AV1_COMP *cpi, BLOCK_SIZE bsize, int mi_row,
   AV1_COMMON *const cm = &cpi->common;
   const GF_GROUP *const gf_group = &cpi->gf_group;
   assert(IMPLIES(cpi->gf_group.size > 0,
-                 cpi->gf_group.index < cpi->gf_group.size));
-  const int tpl_idx = cpi->gf_group.index;
+                 cpi->gf_frame_index < cpi->gf_group.size));
+  const int tpl_idx = cpi->gf_frame_index;
   TplParams *const tpl_data = &cpi->tpl_data;
-  TplDepFrame *tpl_frame = &tpl_data->tpl_frame[tpl_idx];
-  TplDepStats *tpl_stats = tpl_frame->tpl_stats_ptr;
   const uint8_t block_mis_log2 = tpl_data->tpl_stats_block_mis_log2;
-  int tpl_stride = tpl_frame->stride;
   int64_t intra_cost = 0;
   int64_t mc_dep_cost = 0;
   const int mi_wide = mi_size_wide[bsize];
   const int mi_high = mi_size_high[bsize];
 
+  if (tpl_idx >= MAX_TPL_FRAME_IDX) return orig_rdmult;
+
+  TplDepFrame *tpl_frame = &tpl_data->tpl_frame[tpl_idx];
+  TplDepStats *tpl_stats = tpl_frame->tpl_stats_ptr;
+  int tpl_stride = tpl_frame->stride;
   if (tpl_frame->is_valid == 0) return orig_rdmult;
 
-  if (!is_frame_tpl_eligible(gf_group, gf_group->index)) return orig_rdmult;
-
-  if (cpi->gf_group.index >= MAX_TPL_FRAME_IDX) return orig_rdmult;
+  if (!is_frame_tpl_eligible(gf_group, cpi->gf_frame_index)) return orig_rdmult;
 
   int mi_count = 0;
   const int mi_col_sr =
@@ -673,8 +710,11 @@ int av1_get_rdmult_delta(AV1_COMP *cpi, BLOCK_SIZE bsize, int mi_row,
       coded_to_superres_mi(mi_col + mi_wide, cm->superres_scale_denominator);
   const int mi_cols_sr = av1_pixels_to_mi(cm->superres_upscaled_width);
   const int step = 1 << block_mis_log2;
-  for (int row = mi_row; row < mi_row + mi_high; row += step) {
-    for (int col = mi_col_sr; col < mi_col_end_sr; col += step) {
+  const int row_step = step;
+  const int col_step_sr =
+      coded_to_superres_mi(step, cm->superres_scale_denominator);
+  for (int row = mi_row; row < mi_row + mi_high; row += row_step) {
+    for (int col = mi_col_sr; col < mi_col_end_sr; col += col_step_sr) {
       if (row >= cm->mi_params.mi_rows || col >= mi_cols_sr) continue;
       TplDepStats *this_stats =
           &tpl_stats[av1_tpl_ptr_pos(row, col, tpl_stride, block_mis_log2)];
@@ -686,6 +726,7 @@ int av1_get_rdmult_delta(AV1_COMP *cpi, BLOCK_SIZE bsize, int mi_row,
       mi_count++;
     }
   }
+  assert(mi_count <= MAX_TPL_BLK_IN_SB * MAX_TPL_BLK_IN_SB);
 
   aom_clear_system_state();
 
@@ -773,25 +814,26 @@ void av1_get_tpl_stats_sb(AV1_COMP *cpi, BLOCK_SIZE bsize, int mi_row,
   sb_enc->tpl_data_count = 0;
 
   if (!cpi->oxcf.algo_cfg.enable_tpl_model) return;
-  if (cpi->superres_mode != AOM_SUPERRES_NONE) return;
   if (cpi->common.current_frame.frame_type == KEY_FRAME) return;
-  const FRAME_UPDATE_TYPE update_type = get_frame_update_type(&cpi->gf_group);
+  const FRAME_UPDATE_TYPE update_type =
+      get_frame_update_type(&cpi->gf_group, cpi->gf_frame_index);
   if (update_type == INTNL_OVERLAY_UPDATE || update_type == OVERLAY_UPDATE)
     return;
   assert(IMPLIES(cpi->gf_group.size > 0,
-                 cpi->gf_group.index < cpi->gf_group.size));
+                 cpi->gf_frame_index < cpi->gf_group.size));
 
   AV1_COMMON *const cm = &cpi->common;
-  const int gf_group_index = cpi->gf_group.index;
+  const int gf_group_index = cpi->gf_frame_index;
   TplParams *const tpl_data = &cpi->tpl_data;
-  TplDepFrame *tpl_frame = &tpl_data->tpl_frame[gf_group_index];
-  TplDepStats *tpl_stats = tpl_frame->tpl_stats_ptr;
-  int tpl_stride = tpl_frame->stride;
   const int mi_wide = mi_size_wide[bsize];
   const int mi_high = mi_size_high[bsize];
 
-  if (tpl_frame->is_valid == 0) return;
   if (gf_group_index >= MAX_TPL_FRAME_IDX) return;
+
+  TplDepFrame *tpl_frame = &tpl_data->tpl_frame[gf_group_index];
+  TplDepStats *tpl_stats = tpl_frame->tpl_stats_ptr;
+  int tpl_stride = tpl_frame->stride;
+  if (tpl_frame->is_valid == 0) return;
 
   int mi_count = 0;
   int count = 0;
@@ -806,15 +848,18 @@ void av1_get_tpl_stats_sb(AV1_COMP *cpi, BLOCK_SIZE bsize, int mi_row,
   // Here always use motion estimation size to avoid getting repetitive inter/
   // intra cost.
   const BLOCK_SIZE tpl_bsize = convert_length_to_bsize(tpl_data->tpl_bsize_1d);
-  const int step = mi_size_wide[tpl_bsize];
   assert(mi_size_wide[tpl_bsize] == mi_size_high[tpl_bsize]);
+  const int row_step = mi_size_high[tpl_bsize];
+  const int col_step_sr = coded_to_superres_mi(mi_size_wide[tpl_bsize],
+                                               cm->superres_scale_denominator);
 
   // Stride is only based on SB size, and we fill in values for every 16x16
   // block in a SB.
-  sb_enc->tpl_stride = (mi_col_end_sr - mi_col_sr) / step;
+  sb_enc->tpl_stride = (mi_col_end_sr - mi_col_sr) / col_step_sr;
 
-  for (int row = mi_row; row < mi_row + mi_high; row += step) {
-    for (int col = mi_col_sr; col < mi_col_end_sr; col += step) {
+  for (int row = mi_row; row < mi_row + mi_high; row += row_step) {
+    for (int col = mi_col_sr; col < mi_col_end_sr; col += col_step_sr) {
+      assert(count < MAX_TPL_BLK_IN_SB * MAX_TPL_BLK_IN_SB);
       // Handle partial SB, so that no invalid values are used later.
       if (row >= cm->mi_params.mi_rows || col >= mi_cols_sr) {
         sb_enc->tpl_inter_cost[count] = INT64_MAX;
@@ -836,6 +881,7 @@ void av1_get_tpl_stats_sb(AV1_COMP *cpi, BLOCK_SIZE bsize, int mi_row,
     }
   }
 
+  assert(mi_count <= MAX_TPL_BLK_IN_SB * MAX_TPL_BLK_IN_SB);
   sb_enc->tpl_data_count = mi_count;
 }
 
@@ -848,24 +894,24 @@ int av1_get_q_for_deltaq_objective(AV1_COMP *const cpi, BLOCK_SIZE bsize,
   AV1_COMMON *const cm = &cpi->common;
   const GF_GROUP *const gf_group = &cpi->gf_group;
   assert(IMPLIES(cpi->gf_group.size > 0,
-                 cpi->gf_group.index < cpi->gf_group.size));
-  const int tpl_idx = cpi->gf_group.index;
+                 cpi->gf_frame_index < cpi->gf_group.size));
+  const int tpl_idx = cpi->gf_frame_index;
   TplParams *const tpl_data = &cpi->tpl_data;
-  TplDepFrame *tpl_frame = &tpl_data->tpl_frame[tpl_idx];
-  TplDepStats *tpl_stats = tpl_frame->tpl_stats_ptr;
   const uint8_t block_mis_log2 = tpl_data->tpl_stats_block_mis_log2;
-  int tpl_stride = tpl_frame->stride;
   int64_t intra_cost = 0;
   int64_t mc_dep_cost = 0;
   const int mi_wide = mi_size_wide[bsize];
   const int mi_high = mi_size_high[bsize];
   const int base_qindex = cm->quant_params.base_qindex;
 
+  if (tpl_idx >= MAX_TPL_FRAME_IDX) return base_qindex;
+
+  TplDepFrame *tpl_frame = &tpl_data->tpl_frame[tpl_idx];
+  TplDepStats *tpl_stats = tpl_frame->tpl_stats_ptr;
+  int tpl_stride = tpl_frame->stride;
   if (tpl_frame->is_valid == 0) return base_qindex;
 
-  if (!is_frame_tpl_eligible(gf_group, gf_group->index)) return base_qindex;
-
-  if (cpi->gf_group.index >= MAX_TPL_FRAME_IDX) return base_qindex;
+  if (!is_frame_tpl_eligible(gf_group, cpi->gf_frame_index)) return base_qindex;
 
   int mi_count = 0;
   const int mi_col_sr =
@@ -874,8 +920,11 @@ int av1_get_q_for_deltaq_objective(AV1_COMP *const cpi, BLOCK_SIZE bsize,
       coded_to_superres_mi(mi_col + mi_wide, cm->superres_scale_denominator);
   const int mi_cols_sr = av1_pixels_to_mi(cm->superres_upscaled_width);
   const int step = 1 << block_mis_log2;
-  for (int row = mi_row; row < mi_row + mi_high; row += step) {
-    for (int col = mi_col_sr; col < mi_col_end_sr; col += step) {
+  const int row_step = step;
+  const int col_step_sr =
+      coded_to_superres_mi(step, cm->superres_scale_denominator);
+  for (int row = mi_row; row < mi_row + mi_high; row += row_step) {
+    for (int col = mi_col_sr; col < mi_col_end_sr; col += col_step_sr) {
       if (row >= cm->mi_params.mi_rows || col >= mi_cols_sr) continue;
       TplDepStats *this_stats =
           &tpl_stats[av1_tpl_ptr_pos(row, col, tpl_stride, block_mis_log2)];
@@ -887,6 +936,7 @@ int av1_get_q_for_deltaq_objective(AV1_COMP *const cpi, BLOCK_SIZE bsize,
       mi_count++;
     }
   }
+  assert(mi_count <= MAX_TPL_BLK_IN_SB * MAX_TPL_BLK_IN_SB);
 
   aom_clear_system_state();
 
@@ -1133,14 +1183,16 @@ void av1_source_content_sb(AV1_COMP *cpi, MACROBLOCK *x, int offset) {
   last_src_y += offset;
   tmp_variance = cpi->fn_ptr[bsize].vf(src_y, src_ystride, last_src_y,
                                        last_src_ystride, &tmp_sse);
-  // Note: tmp_sse - tmp_variance = ((sum * sum) >> 12)
-  // Detect large lighting change.
-  if (tmp_variance < (tmp_sse >> 1) && (tmp_sse - tmp_variance) > sum_sq_thresh)
-    x->content_state_sb = kLowVarHighSumdiff;
-  else if (tmp_sse < avg_source_sse_threshold)
-    x->content_state_sb = kLowSad;
+  if (tmp_sse < avg_source_sse_threshold)
+    x->content_state_sb.source_sad = kLowSad;
   else if (tmp_sse > avg_source_sse_threshold_high)
-    x->content_state_sb = kHighSad;
+    x->content_state_sb.source_sad = kHighSad;
+  // Detect large lighting change.
+  // Note: tmp_sse - tmp_variance = ((sum * sum) >> 12)
+  if (tmp_variance < (tmp_sse >> 1) && (tmp_sse - tmp_variance) > sum_sq_thresh)
+    x->content_state_sb.lighting_change = 1;
+  if ((tmp_sse - tmp_variance) < (sum_sq_thresh >> 1))
+    x->content_state_sb.low_sumdiff = 1;
 }
 
 // Memset the mbmis at the current superblock to 0
@@ -1245,6 +1297,74 @@ void av1_restore_sb_state(const SB_FIRST_PASS_STATS *sb_fp_stats, AV1_COMP *cpi,
 #endif  // CONFIG_INTERNAL_STATS
 }
 
+/*! Checks whether to skip updating the entropy cost based on tile info.
+ *
+ * This function contains codes common to both \ref skip_mv_cost_update and
+ * \ref skip_dv_cost_update.
+ */
+static int skip_cost_update(const SequenceHeader *seq_params,
+                            const TileInfo *const tile_info, const int mi_row,
+                            const int mi_col,
+                            INTERNAL_COST_UPDATE_TYPE upd_level) {
+  if (upd_level == INTERNAL_COST_UPD_SB) return 0;
+  if (upd_level == INTERNAL_COST_UPD_OFF) return 1;
+
+  // upd_level is at most as frequent as each sb_row in a tile.
+  if (mi_col != tile_info->mi_col_start) return 1;
+
+  if (upd_level == INTERNAL_COST_UPD_SBROW_SET) {
+    const int mib_size_log2 = seq_params->mib_size_log2;
+    const int sb_row = (mi_row - tile_info->mi_row_start) >> mib_size_log2;
+    const int sb_size = seq_params->mib_size * MI_SIZE;
+    const int tile_height =
+        (tile_info->mi_row_end - tile_info->mi_row_start) * MI_SIZE;
+    // When upd_level = INTERNAL_COST_UPD_SBROW_SET, the cost update happens
+    // once for 2, 4 sb rows for sb size 128, sb size 64 respectively. However,
+    // as the update will not be equally spaced in smaller resolutions making
+    // it equally spaced by calculating (mv_num_rows_cost_update) the number of
+    // rows after which the cost update should happen.
+    const int sb_size_update_freq_map[2] = { 2, 4 };
+    const int update_freq_sb_rows =
+        sb_size_update_freq_map[sb_size != MAX_SB_SIZE];
+    const int update_freq_num_rows = sb_size * update_freq_sb_rows;
+    // Round-up the division result to next integer.
+    const int num_updates_per_tile =
+        (tile_height + update_freq_num_rows - 1) / update_freq_num_rows;
+    const int num_rows_update_per_tile = num_updates_per_tile * sb_size;
+    // Round-up the division result to next integer.
+    const int num_sb_rows_per_update =
+        (tile_height + num_rows_update_per_tile - 1) / num_rows_update_per_tile;
+    if ((sb_row % num_sb_rows_per_update) != 0) return 1;
+  }
+  return 0;
+}
+
+// Checks for skip status of mv cost update.
+static int skip_mv_cost_update(AV1_COMP *cpi, const TileInfo *const tile_info,
+                               const int mi_row, const int mi_col) {
+  const AV1_COMMON *cm = &cpi->common;
+  // For intra frames, mv cdfs are not updated during the encode. Hence, the mv
+  // cost calculation is skipped in this case.
+  if (frame_is_intra_only(cm)) return 1;
+
+  return skip_cost_update(&cm->seq_params, tile_info, mi_row, mi_col,
+                          cpi->sf.inter_sf.mv_cost_upd_level);
+}
+
+// Checks for skip status of dv cost update.
+static int skip_dv_cost_update(AV1_COMP *cpi, const TileInfo *const tile_info,
+                               const int mi_row, const int mi_col) {
+  const AV1_COMMON *cm = &cpi->common;
+  // Intrabc is only applicable to intra frames. So skip if intrabc is not
+  // allowed.
+  if (!av1_allow_intrabc(cm) || is_stat_generation_stage(cpi)) {
+    return 1;
+  }
+
+  return skip_cost_update(&cm->seq_params, tile_info, mi_row, mi_col,
+                          cpi->sf.intra_sf.dv_cost_upd_level);
+}
+
 // Update the rate costs of some symbols according to the frequency directed
 // by speed features
 void av1_set_cost_upd_freq(AV1_COMP *cpi, ThreadData *td,
@@ -1256,27 +1376,22 @@ void av1_set_cost_upd_freq(AV1_COMP *cpi, ThreadData *td,
   MACROBLOCKD *const xd = &x->e_mbd;
 
   switch (cpi->oxcf.cost_upd_freq.coeff) {
-    case COST_UPD_OFF: break;
+    case COST_UPD_OFF:
     case COST_UPD_TILE:  // Tile level
-      if (mi_row != tile_info->mi_row_start) break;
-      AOM_FALLTHROUGH_INTENDED;
+      break;
     case COST_UPD_SBROW:  // SB row level in tile
       if (mi_col != tile_info->mi_col_start) break;
       AOM_FALLTHROUGH_INTENDED;
     case COST_UPD_SB:  // SB level
-      if (cpi->sf.inter_sf.disable_sb_level_coeff_cost_upd &&
-          mi_col != tile_info->mi_col_start)
-        break;
       av1_fill_coeff_costs(&x->coeff_costs, xd->tile_ctx, num_planes);
       break;
     default: assert(0);
   }
 
   switch (cpi->oxcf.cost_upd_freq.mode) {
-    case COST_UPD_OFF: break;
+    case COST_UPD_OFF:
     case COST_UPD_TILE:  // Tile level
-      if (mi_row != tile_info->mi_row_start) break;
-      AOM_FALLTHROUGH_INTENDED;
+      break;
     case COST_UPD_SBROW:  // SB row level in tile
       if (mi_col != tile_info->mi_col_start) break;
       AOM_FALLTHROUGH_INTENDED;
@@ -1286,19 +1401,33 @@ void av1_set_cost_upd_freq(AV1_COMP *cpi, ThreadData *td,
     default: assert(0);
   }
   switch (cpi->oxcf.cost_upd_freq.mv) {
-    case COST_UPD_OFF: break;
+    case COST_UPD_OFF:
     case COST_UPD_TILE:  // Tile level
-      if (mi_row != tile_info->mi_row_start) break;
-      AOM_FALLTHROUGH_INTENDED;
+      break;
     case COST_UPD_SBROW:  // SB row level in tile
       if (mi_col != tile_info->mi_col_start) break;
       AOM_FALLTHROUGH_INTENDED;
     case COST_UPD_SB:  // SB level
-      if (cpi->sf.inter_sf.disable_sb_level_mv_cost_upd &&
-          mi_col != tile_info->mi_col_start)
-        break;
-      av1_fill_mv_costs(xd->tile_ctx, cm->features.cur_frame_force_integer_mv,
-                        cm->features.allow_high_precision_mv, &x->mv_costs);
+      // Checks for skip status of mv cost update.
+      if (skip_mv_cost_update(cpi, tile_info, mi_row, mi_col)) break;
+      av1_fill_mv_costs(&xd->tile_ctx->nmvc,
+                        cm->features.cur_frame_force_integer_mv,
+                        cm->features.allow_high_precision_mv, x->mv_costs);
+      break;
+    default: assert(0);
+  }
+
+  switch (cpi->oxcf.cost_upd_freq.dv) {
+    case COST_UPD_OFF:
+    case COST_UPD_TILE:  // Tile level
+      break;
+    case COST_UPD_SBROW:  // SB row level in tile
+      if (mi_col != tile_info->mi_col_start) break;
+      AOM_FALLTHROUGH_INTENDED;
+    case COST_UPD_SB:  // SB level
+      // Checks for skip status of dv cost update.
+      if (skip_dv_cost_update(cpi, tile_info, mi_row, mi_col)) break;
+      av1_fill_dv_costs(&xd->tile_ctx->ndvc, x->dv_costs);
       break;
     default: assert(0);
   }

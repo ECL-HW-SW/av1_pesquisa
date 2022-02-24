@@ -349,14 +349,15 @@ void av1_init_me_luts(void) {
 
 static const int rd_boost_factor[16] = { 64, 32, 32, 32, 24, 16, 12, 12,
                                          8,  8,  4,  4,  2,  2,  1,  0 };
-static const int rd_layer_depth_factor[6] = {
-  128, 128, 144, 160, 160, 180,
+
+static const int rd_layer_depth_factor[7] = {
+  160, 160, 160, 160, 192, 208, 224
 };
 
 int av1_compute_rd_mult_based_on_qindex(const AV1_COMP *cpi, int qindex) {
   const int q = av1_dc_quant_QTX(qindex, 0, cpi->common.seq_params.bit_depth);
-  int rdmult = q * q;
-  rdmult = rdmult * 3 + (rdmult * 2 / 3);
+  int rdmult = (int)(((int64_t)88 * q * q) / 24);
+
   switch (cpi->common.seq_params.bit_depth) {
     case AOM_BITS_8: break;
     case AOM_BITS_10: rdmult = ROUND_POWER_OF_TWO(rdmult, 4); break;
@@ -374,9 +375,13 @@ int av1_compute_rd_mult(const AV1_COMP *cpi, int qindex) {
       (cpi->common.current_frame.frame_type != KEY_FRAME)) {
     const GF_GROUP *const gf_group = &cpi->gf_group;
     const int boost_index = AOMMIN(15, (cpi->rc.gfu_boost / 100));
-    const int layer_depth = AOMMIN(gf_group->layer_depth[gf_group->index], 5);
+    const int layer_depth =
+        AOMMIN(gf_group->layer_depth[cpi->gf_frame_index], 6);
 
+    // Layer depth adjustment
     rdmult = (rdmult * rd_layer_depth_factor[layer_depth]) >> 7;
+
+    // ARF boost adjustment
     rdmult += ((rdmult * rd_boost_factor[boost_index]) >> 7);
   }
   return (int)rdmult;
@@ -404,33 +409,10 @@ int av1_get_deltaq_offset(const AV1_COMP *cpi, int qindex, double beta) {
 int av1_get_adaptive_rdmult(const AV1_COMP *cpi, double beta) {
   assert(beta > 0.0);
   const AV1_COMMON *cm = &cpi->common;
-  int64_t q = av1_dc_quant_QTX(cm->quant_params.base_qindex, 0,
-                               cm->seq_params.bit_depth);
-  int64_t rdmult = 0;
+  int q = av1_dc_quant_QTX(cm->quant_params.base_qindex, 0,
+                           cm->seq_params.bit_depth);
 
-  switch (cm->seq_params.bit_depth) {
-    case AOM_BITS_8: rdmult = (int)((88 * q * q / beta) / 24); break;
-    case AOM_BITS_10:
-      rdmult = ROUND_POWER_OF_TWO((int)((88 * q * q / beta) / 24), 4);
-      break;
-    default:
-      assert(cm->seq_params.bit_depth == AOM_BITS_12);
-      rdmult = ROUND_POWER_OF_TWO((int)((88 * q * q / beta) / 24), 8);
-      break;
-  }
-
-  if (is_stat_consumption_stage(cpi) &&
-      (cm->current_frame.frame_type != KEY_FRAME)) {
-    const GF_GROUP *const gf_group = &cpi->gf_group;
-    const int boost_index = AOMMIN(15, (cpi->rc.gfu_boost / 100));
-
-    const int layer_depth = AOMMIN(gf_group->layer_depth[gf_group->index], 5);
-    rdmult = (rdmult * rd_layer_depth_factor[layer_depth]) >> 7;
-
-    rdmult += ((rdmult * rd_boost_factor[boost_index]) >> 7);
-  }
-  if (rdmult < 1) rdmult = 1;
-  return (int)rdmult;
+  return (int)(av1_compute_rd_mult(cpi, q) / beta);
 }
 
 static int compute_rd_thresh_factor(int qindex, aom_bit_depth_t bit_depth) {
@@ -451,11 +433,11 @@ static int compute_rd_thresh_factor(int qindex, aom_bit_depth_t bit_depth) {
   return AOMMAX((int)(pow(q, RD_THRESH_POW) * 5.12), 8);
 }
 
-void av1_set_sad_per_bit(const AV1_COMP *cpi, MvCosts *mv_costs, int qindex) {
+void av1_set_sad_per_bit(const AV1_COMP *cpi, int *sadperbit, int qindex) {
   switch (cpi->common.seq_params.bit_depth) {
-    case AOM_BITS_8: mv_costs->sadperbit = sad_per_bit_lut_8[qindex]; break;
-    case AOM_BITS_10: mv_costs->sadperbit = sad_per_bit_lut_10[qindex]; break;
-    case AOM_BITS_12: mv_costs->sadperbit = sad_per_bit_lut_12[qindex]; break;
+    case AOM_BITS_8: *sadperbit = sad_per_bit_lut_8[qindex]; break;
+    case AOM_BITS_10: *sadperbit = sad_per_bit_lut_10[qindex]; break;
+    case AOM_BITS_12: *sadperbit = sad_per_bit_lut_12[qindex]; break;
     default:
       assert(0 && "bit_depth should be AOM_BITS_8, AOM_BITS_10 or AOM_BITS_12");
   }
@@ -578,7 +560,7 @@ void av1_fill_coeff_costs(CoeffCosts *coeff_costs, FRAME_CONTEXT *fc,
   }
 }
 
-void av1_fill_mv_costs(const FRAME_CONTEXT *fc, int integer_mv, int usehp,
+void av1_fill_mv_costs(const nmv_context *nmvc, int integer_mv, int usehp,
                        MvCosts *mv_costs) {
   mv_costs->nmv_cost[0] = &mv_costs->nmv_cost_alloc[0][MV_MAX];
   mv_costs->nmv_cost[1] = &mv_costs->nmv_cost_alloc[1][MV_MAX];
@@ -587,54 +569,58 @@ void av1_fill_mv_costs(const FRAME_CONTEXT *fc, int integer_mv, int usehp,
   if (integer_mv) {
     mv_costs->mv_cost_stack = (int **)&mv_costs->nmv_cost;
     av1_build_nmv_cost_table(mv_costs->nmv_joint_cost, mv_costs->mv_cost_stack,
-                             &fc->nmvc, MV_SUBPEL_NONE);
+                             nmvc, MV_SUBPEL_NONE);
   } else {
     mv_costs->mv_cost_stack =
         usehp ? mv_costs->nmv_cost_hp : mv_costs->nmv_cost;
     av1_build_nmv_cost_table(mv_costs->nmv_joint_cost, mv_costs->mv_cost_stack,
-                             &fc->nmvc, usehp);
+                             nmvc, usehp);
   }
+}
+
+void av1_fill_dv_costs(const nmv_context *ndvc, IntraBCMVCosts *dv_costs) {
+  dv_costs->dv_costs[0] = &dv_costs->dv_costs_alloc[0][MV_MAX];
+  dv_costs->dv_costs[1] = &dv_costs->dv_costs_alloc[1][MV_MAX];
+  av1_build_nmv_cost_table(dv_costs->joint_mv, dv_costs->dv_costs, ndvc,
+                           MV_SUBPEL_NONE);
 }
 
 void av1_initialize_rd_consts(AV1_COMP *cpi) {
   AV1_COMMON *const cm = &cpi->common;
   MACROBLOCK *const x = &cpi->td.mb;
   RD_OPT *const rd = &cpi->rd;
-  MvCosts *mv_costs = &x->mv_costs;
+  MvCosts *mv_costs = x->mv_costs;
+  int use_nonrd_pick_mode = cpi->sf.rt_sf.use_nonrd_pick_mode;
+  CostUpdateFreq cost_upd_freq = cpi->oxcf.cost_upd_freq;
+  int fill_costs =
+      frame_is_intra_only(cm) || (cm->current_frame.frame_number & 0x07) == 1;
+  int num_planes = av1_num_planes(cm);
 
   aom_clear_system_state();
 
   rd->RDMULT = av1_compute_rd_mult(
       cpi, cm->quant_params.base_qindex + cm->quant_params.y_dc_delta_q);
 
-  av1_set_error_per_bit(mv_costs, rd->RDMULT);
+  av1_set_error_per_bit(&x->errorperbit, rd->RDMULT);
 
   set_block_thresholds(cm, rd);
 
-  if ((!cpi->sf.rt_sf.use_nonrd_pick_mode &&
-       cpi->oxcf.cost_upd_freq.mv != COST_UPD_OFF) ||
-      frame_is_intra_only(cm) || (cm->current_frame.frame_number & 0x07) == 1)
-    av1_fill_mv_costs(cm->fc, cm->features.cur_frame_force_integer_mv,
+  if ((!use_nonrd_pick_mode && cost_upd_freq.mv != COST_UPD_OFF) ||
+      cost_upd_freq.mv == COST_UPD_TILE || fill_costs)
+    av1_fill_mv_costs(&cm->fc->nmvc, cm->features.cur_frame_force_integer_mv,
                       cm->features.allow_high_precision_mv, mv_costs);
 
-  if (!cpi->sf.rt_sf.use_nonrd_pick_mode && frame_is_intra_only(cm) &&
-      cm->features.allow_screen_content_tools &&
-      !is_stat_generation_stage(cpi)) {
-    IntraBCMVCosts *const dv_costs = &cpi->dv_costs;
-    int *dvcost[2] = { &dv_costs->mv_component[0][MV_MAX],
-                       &dv_costs->mv_component[1][MV_MAX] };
-    av1_build_nmv_cost_table(dv_costs->joint_mv, dvcost, &cm->fc->ndvc,
-                             MV_SUBPEL_NONE);
-  }
+  if ((!use_nonrd_pick_mode && cost_upd_freq.coeff != COST_UPD_OFF) ||
+      cost_upd_freq.coeff == COST_UPD_TILE || fill_costs)
+    av1_fill_coeff_costs(&x->coeff_costs, cm->fc, num_planes);
 
-  if (!is_stat_generation_stage(cpi)) {
-    for (int i = 0; i < TRANS_TYPES; ++i)
-      // IDENTITY: 1 bit
-      // TRANSLATION: 3 bits
-      // ROTZOOM: 2 bits
-      // AFFINE: 3 bits
-      cpi->gm_info.type_cost[i] = (1 + (i > 0 ? (i == ROTZOOM ? 1 : 2) : 0))
-                                  << AV1_PROB_COST_SHIFT;
+  if ((!use_nonrd_pick_mode && cost_upd_freq.mode != COST_UPD_OFF) ||
+      cost_upd_freq.mode == COST_UPD_TILE || fill_costs)
+    av1_fill_mode_rates(cm, &x->mode_costs, cm->fc);
+
+  if (!use_nonrd_pick_mode && av1_allow_intrabc(cm) &&
+      !is_stat_generation_stage(cpi)) {
+    av1_fill_dv_costs(&cm->fc->ndvc, x->dv_costs);
   }
 }
 
@@ -1004,9 +990,9 @@ void av1_mv_pred(const AV1_COMP *cpi, MACROBLOCK *x, uint8_t *ref_y_buffer,
                  int ref_y_stride, int ref_frame, BLOCK_SIZE block_size) {
   const MV_REFERENCE_FRAME ref_frames[2] = { ref_frame, NONE_FRAME };
   const int_mv ref_mv =
-      av1_get_ref_mv_from_stack(0, ref_frames, 0, x->mbmi_ext);
+      av1_get_ref_mv_from_stack(0, ref_frames, 0, &x->mbmi_ext);
   const int_mv ref_mv1 =
-      av1_get_ref_mv_from_stack(0, ref_frames, 1, x->mbmi_ext);
+      av1_get_ref_mv_from_stack(0, ref_frames, 1, &x->mbmi_ext);
   MV pred_mv[MAX_MV_REF_CANDIDATES + 1];
   int num_mv_refs = 0;
   pred_mv[num_mv_refs++] = ref_mv.as_mv;
@@ -1080,13 +1066,12 @@ YV12_BUFFER_CONFIG *av1_get_scaled_ref_frame(const AV1_COMP *cpi,
 }
 
 int av1_get_switchable_rate(const MACROBLOCK *x, const MACROBLOCKD *xd,
-                            InterpFilter interp_filter) {
+                            InterpFilter interp_filter, int dual_filter) {
   if (interp_filter == SWITCHABLE) {
     const MB_MODE_INFO *const mbmi = xd->mi[0];
     int inter_filter_cost = 0;
-    int dir;
-
-    for (dir = 0; dir < 2; ++dir) {
+    for (int dir = 0; dir < 2; ++dir) {
+      if (dir && !dual_filter) break;
       const int ctx = av1_get_pred_context_switchable_interp(xd, dir);
       const InterpFilter filter =
           av1_extract_interp_filter(mbmi->interp_filters, dir);

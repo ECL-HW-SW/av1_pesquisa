@@ -1338,15 +1338,21 @@ void av1_upscale_normative_and_extend_frame(const AV1_COMMON *cm,
   aom_extend_frame_borders(dst, num_planes);
 }
 
-YV12_BUFFER_CONFIG *av1_scale_if_required(AV1_COMMON *cm,
-                                          YV12_BUFFER_CONFIG *unscaled,
-                                          YV12_BUFFER_CONFIG *scaled,
-                                          const InterpFilter filter,
-                                          const int phase,
-                                          const int use_optimized_scaler) {
-  const int num_planes = av1_num_planes(cm);
-  if (cm->width != unscaled->y_crop_width ||
-      cm->height != unscaled->y_crop_height) {
+YV12_BUFFER_CONFIG *av1_scale_if_required(
+    AV1_COMMON *cm, YV12_BUFFER_CONFIG *unscaled, YV12_BUFFER_CONFIG *scaled,
+    const InterpFilter filter, const int phase, const bool use_optimized_scaler,
+    const bool for_psnr) {
+  // If scaling is performed for the sole purpose of calculating PSNR, then our
+  // target dimensions are superres upscaled width/height. Otherwise our target
+  // dimensions are coded width/height.
+  const bool scaling_required =
+      for_psnr ? (cm->superres_upscaled_width != unscaled->y_crop_width ||
+                  cm->superres_upscaled_height != unscaled->y_crop_height)
+               : (cm->width != unscaled->y_crop_width ||
+                  cm->height != unscaled->y_crop_height);
+
+  if (scaling_required) {
+    const int num_planes = av1_num_planes(cm);
 #if CONFIG_AV1_HIGHBITDEPTH
     if (use_optimized_scaler && cm->seq_params.bit_depth == AOM_BITS_8) {
       av1_resize_and_extend_frame(unscaled, scaled, filter, phase, num_planes);
@@ -1470,7 +1476,7 @@ void av1_superres_upscale(AV1_COMMON *cm, BufferPool *const pool) {
             frame_to_show, cm->superres_upscaled_width,
             cm->superres_upscaled_height, seq_params->subsampling_x,
             seq_params->subsampling_y, seq_params->use_highbitdepth,
-            AOM_BORDER_IN_PIXELS, byte_alignment, fb, cb, cb_priv)) {
+            AOM_BORDER_IN_PIXELS, byte_alignment, fb, cb, cb_priv, 0)) {
       unlock_buffer_pool(pool);
       aom_internal_error(
           &cm->error, AOM_CODEC_MEM_ERROR,

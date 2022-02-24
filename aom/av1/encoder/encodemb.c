@@ -30,8 +30,8 @@
 
 #include "av1/encoder/av1_quantize.h"
 #include "av1/encoder/encodemb.h"
-#include "av1/encoder/encodetxb.h"
 #include "av1/encoder/hybrid_fwd_txfm.h"
+#include "av1/encoder/txb_rdopt.h"
 #include "av1/encoder/rd.h"
 #include "av1/encoder/rdopt.h"
 
@@ -96,8 +96,8 @@ int av1_optimize_b(const struct AV1_COMP *cpi, MACROBLOCK *x, int plane,
     return eob;
   }
 
-  return av1_optimize_txb_new(cpi, x, plane, block, tx_size, tx_type, txb_ctx,
-                              rate_cost, cpi->oxcf.algo_cfg.sharpness);
+  return av1_optimize_txb(cpi, x, plane, block, tx_size, tx_type, txb_ctx,
+                          rate_cost, cpi->oxcf.algo_cfg.sharpness);
 }
 
 // Hyper-parameters for dropout optimization, based on following logics.
@@ -513,14 +513,16 @@ static void encode_block_inter(int plane, int block, int blk_row, int blk_col,
     const int bsw = tx_size_wide_unit[sub_txs];
     const int bsh = tx_size_high_unit[sub_txs];
     const int step = bsh * bsw;
+    const int row_end =
+        AOMMIN(tx_size_high_unit[tx_size], max_blocks_high - blk_row);
+    const int col_end =
+        AOMMIN(tx_size_wide_unit[tx_size], max_blocks_wide - blk_col);
     assert(bsw > 0 && bsh > 0);
 
-    for (int row = 0; row < tx_size_high_unit[tx_size]; row += bsh) {
-      for (int col = 0; col < tx_size_wide_unit[tx_size]; col += bsw) {
-        const int offsetr = blk_row + row;
+    for (int row = 0; row < row_end; row += bsh) {
+      const int offsetr = blk_row + row;
+      for (int col = 0; col < col_end; col += bsw) {
         const int offsetc = blk_col + col;
-
-        if (offsetr >= max_blocks_high || offsetc >= max_blocks_wide) continue;
 
         encode_block_inter(plane, block, offsetr, offsetc, plane_bsize, sub_txs,
                            arg, dry_run);
@@ -621,7 +623,6 @@ void av1_encode_sby_pass1(AV1_COMP *cpi, MACROBLOCK *x, BLOCK_SIZE bsize) {
                                          encode_block_pass1, &args);
 }
 
-//@grellert: codifica o SB (macrobloco, CTU)
 void av1_encode_sb(const struct AV1_COMP *cpi, MACROBLOCK *x, BLOCK_SIZE bsize,
                    RUN_TYPE dry_run) {
   assert(bsize < BLOCK_SIZES_ALL);

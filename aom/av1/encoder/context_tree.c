@@ -11,6 +11,7 @@
 
 #include "av1/encoder/context_tree.h"
 #include "av1/encoder/encoder.h"
+#include "av1/encoder/rd.h"
 
 static const BLOCK_SIZE square[MAX_SB_SIZE_LOG2 - 1] = {
   BLOCK_4X4, BLOCK_8X8, BLOCK_16X16, BLOCK_32X32, BLOCK_64X64, BLOCK_128X128,
@@ -64,9 +65,11 @@ void av1_free_shared_coeff_buffer(PC_TREE_SHARED_BUFFERS *shared_bufs) {
   }
 }
 
-PICK_MODE_CONTEXT *av1_alloc_pmc(const AV1_COMMON *cm, BLOCK_SIZE bsize,
+PICK_MODE_CONTEXT *av1_alloc_pmc(const struct AV1_COMP *const cpi,
+                                 BLOCK_SIZE bsize,
                                  PC_TREE_SHARED_BUFFERS *shared_bufs) {
   PICK_MODE_CONTEXT *ctx = NULL;
+  const AV1_COMMON *const cm = &cpi->common;
   struct aom_internal_error_info error;
 
   AOM_CHECK_MEM_ERROR(&error, ctx, aom_calloc(1, sizeof(*ctx)));
@@ -95,11 +98,17 @@ PICK_MODE_CONTEXT *av1_alloc_pmc(const AV1_COMMON *cm, BLOCK_SIZE bsize,
 
   if (num_pix <= MAX_PALETTE_SQUARE) {
     for (int i = 0; i < 2; ++i) {
-      AOM_CHECK_MEM_ERROR(
-          &error, ctx->color_index_map[i],
-          aom_memalign(32, num_pix * sizeof(*ctx->color_index_map[i])));
+      if (!cpi->sf.rt_sf.use_nonrd_pick_mode || frame_is_intra_only(cm)) {
+        AOM_CHECK_MEM_ERROR(
+            &error, ctx->color_index_map[i],
+            aom_memalign(32, num_pix * sizeof(*ctx->color_index_map[i])));
+      } else {
+        ctx->color_index_map[i] = NULL;
+      }
     }
   }
+
+  av1_invalid_rd_stats(&ctx->rd_stats);
 
   return ctx;
 }
@@ -121,8 +130,10 @@ void av1_free_pmc(PICK_MODE_CONTEXT *ctx, int num_planes) {
   }
 
   for (int i = 0; i < 2; ++i) {
-    aom_free(ctx->color_index_map[i]);
-    ctx->color_index_map[i] = NULL;
+    if (ctx->color_index_map[i]) {
+      aom_free(ctx->color_index_map[i]);
+      ctx->color_index_map[i] = NULL;
+    }
   }
 
   aom_free(ctx);

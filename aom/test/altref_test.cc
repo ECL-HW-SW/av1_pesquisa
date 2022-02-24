@@ -61,8 +61,7 @@ class AltRefFramePresenceTestLarge
   virtual ~AltRefFramePresenceTestLarge() {}
 
   virtual void SetUp() {
-    InitializeConfig();
-    SetMode(altref_test_params_.encoding_mode);
+    InitializeConfig(altref_test_params_.encoding_mode);
     const aom_rational timebase = { 1, 30 };
     cfg_.g_timebase = timebase;
     cfg_.rc_end_usage = rc_end_usage_;
@@ -155,8 +154,7 @@ class GoldenFrameIntervalTestLarge
   virtual ~GoldenFrameIntervalTestLarge() {}
 
   virtual void SetUp() {
-    InitializeConfig();
-    SetMode(gf_interval_param_.encoding_mode);
+    InitializeConfig(gf_interval_param_.encoding_mode);
     const aom_rational timebase = { 1, 30 };
     cfg_.g_timebase = timebase;
     cfg_.rc_end_usage = rc_end_usage_;
@@ -184,7 +182,8 @@ class GoldenFrameIntervalTestLarge
     }
     if (frame_num_ > 0) {
       encoder->Control(AV1E_GET_BASELINE_GF_INTERVAL, &baseline_gf_interval_);
-      ASSERT_LE(baseline_gf_interval_, (int)gf_interval_param_.max_gf_interval);
+      ASSERT_LE(baseline_gf_interval_,
+                (int)gf_interval_param_.max_gf_interval + 1);
       if ((frame_num_ + (int)gf_interval_param_.min_gf_interval) <= limit_) {
         ASSERT_GE(baseline_gf_interval_,
                   (int)gf_interval_param_.min_gf_interval);
@@ -204,9 +203,7 @@ class GoldenFrameIntervalTestLarge
   aom_rc_mode rc_end_usage_;
 };
 
-// TODO(crbug.com/aomedia/2800): Re-enable or remove this test when the redesign
-// of the GOP structure and related rate control mechanism is complete.
-TEST_P(GoldenFrameIntervalTestLarge, DISABLED_GoldenFrameIntervalTest) {
+TEST_P(GoldenFrameIntervalTestLarge, GoldenFrameIntervalTest) {
   libaom_test::I420VideoSource video("hantro_collage_w352h288.yuv", 352, 288,
                                      cfg_.g_timebase.den, cfg_.g_timebase.num,
                                      0, limit_);

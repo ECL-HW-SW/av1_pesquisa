@@ -35,7 +35,6 @@ void av1_nn_predict_c(const float *input_nodes,
   float buf[2][NN_MAX_NODES_PER_LAYER];
 
   // Propagate hidden layers.
-  // Feed-forward NNs
   const int num_layers = nn_config->num_hidden_layers;
   assert(num_layers <= NN_MAX_HIDDEN_LAYERS);
   for (int layer = 0; layer < num_layers; ++layer) {

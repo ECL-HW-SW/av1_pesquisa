@@ -201,10 +201,7 @@ class ResizeTest
 
   virtual ~ResizeTest() {}
 
-  virtual void SetUp() {
-    InitializeConfig();
-    SetMode(GET_PARAM(1));
-  }
+  virtual void SetUp() { InitializeConfig(GET_PARAM(1)); }
 
   virtual void DecompressedFrameHook(const aom_image_t &img,
                                      aom_codec_pts_t pts) {
@@ -300,7 +297,7 @@ class ResizeInternalTestLarge : public ResizeTest {
 
   virtual void PSNRPktHook(const aom_codec_cx_pkt_t *pkt) {
     if (frame0_psnr_ == 0.) frame0_psnr_ = pkt->data.psnr.psnr[0];
-    EXPECT_NEAR(pkt->data.psnr.psnr[0], frame0_psnr_, 3.0);
+    EXPECT_NEAR(pkt->data.psnr.psnr[0], frame0_psnr_, 4.1);
   }
 
 #if WRITE_COMPRESSED_STREAM
@@ -409,8 +406,7 @@ class ResizeRealtimeTest
   }
 
   virtual void SetUp() {
-    InitializeConfig();
-    SetMode(GET_PARAM(1));
+    InitializeConfig(GET_PARAM(1));
     set_cpu_used_ = GET_PARAM(2);
   }
 
@@ -804,8 +800,7 @@ class ResizeModeTestLarge
   virtual ~ResizeModeTestLarge() {}
 
   virtual void SetUp() {
-    InitializeConfig();
-    SetMode(encoding_mode_);
+    InitializeConfig(encoding_mode_);
     const aom_rational timebase = { 1, 30 };
     cfg_.g_timebase = timebase;
     cfg_.rc_end_usage = AOM_VBR;
