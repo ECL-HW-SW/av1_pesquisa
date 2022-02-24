@@ -1247,8 +1247,6 @@ static AOM_INLINE void set_offsets_for_pred_and_recon(AV1Decoder *const pbi,
   const int offset = mi_row * mi_params->mi_stride + mi_col;
   const TileInfo *const tile = &xd->tile;
 
-  time_t start_time = clock();
-
   xd->mi = mi_params->mi_grid_base + offset;
   xd->tx_type_map =
       &mi_params->tx_type_map[mi_row * mi_params->mi_stride + mi_col];
@@ -1324,6 +1322,8 @@ static AOM_INLINE void decode_partition(AV1Decoder *const pbi,
 
   if (mi_row >= cm->mi_params.mi_rows || mi_col >= cm->mi_params.mi_cols)
     return;
+
+  time_t start_time = clock();
 
   // parse_decode_flag takes the following values :
   // 01 - do parse only
