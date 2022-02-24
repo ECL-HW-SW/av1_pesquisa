@@ -494,7 +494,7 @@ static int main_loop(int argc, const char **argv_) {
 
   //@icaro
 
-  FILE *used_part = fopen("output_files/used_part.csv" , "w");
+  FILE *used_part = fopen("used_part.csv" , "w");
 
   fprintf(used_part,"bsize; partition; subsize; time \n");
   fclose(used_part);

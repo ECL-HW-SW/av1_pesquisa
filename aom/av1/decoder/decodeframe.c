@@ -1443,12 +1443,12 @@ static AOM_INLINE void decode_partition(AV1Decoder *const pbi,
   if (parse_decode_flag & 1)
     update_ext_partition_context(xd, mi_row, mi_col, subsize, bsize, partition);
 
-  time_t end_time = clock();
-
   // BLOCK_SIZE subsize =
   //   get_partition_subsize(bsize, partition);
+  
+  time_t end_time = clock();
 
-  FILE *used_part = fopen("output_files/used_part.csv" , "a");
+  FILE *used_part = fopen("used_part.csv" , "a");
 
   fprintf(used_part, "%d; %d; %d; %f\n",bsize, partition, subsize, (float)(end_time-start_time)/CLOCKS_PER_SEC);
   fclose(used_part);
