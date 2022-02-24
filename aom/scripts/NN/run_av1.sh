@@ -1,0 +1,25 @@
+/home/simulacoes_av1/av1_pesquisa/aom/build_debug/aomenc --verbose --psnr --frame-parallel=0 --tile-columns=0 --passes=2 --cpu-used=0 --threads=1 --kf-min-dist=1000 --kf-max-dist=1000 --lag-in-frames=19 --limit=60 --end-usage=q --cq-level=55 --width=416 --height=240 -o BQSquare_416x240_60/cq_55/webm/coded.webm /home/data/YUV/BQSquare_416x240_60.yuv  &> BQSquare_416x240_60/cq_55/log/arquivo.log
+
+/home/simulacoes_av1/av1_pesquisa/aom/build_debug/aomenc --verbose --psnr --frame-parallel=0 --tile-columns=0 --passes=2 --cpu-used=0 --threads=1 --kf-min-dist=1000 --kf-max-dist=1000 --lag-in-frames=19 --limit=60 --end-usage=q --cq-level=43 --width=416 --height=240 -o BQSquare_416x240_60/cq_43/webm/coded.webm /home/data/YUV/BQSquare_416x240_60.yuv  &> BQSquare_416x240_60/cq_43/log/arquivo.log
+
+/home/simulacoes_av1/av1_pesquisa/aom/build_debug/aomenc --verbose --psnr --frame-parallel=0 --tile-columns=0 --passes=2 --cpu-used=0 --threads=1 --kf-min-dist=1000 --kf-max-dist=1000 --lag-in-frames=19 --limit=60 --end-usage=q --cq-level=32 --width=416 --height=240 -o BQSquare_416x240_60/cq_32/webm/coded.webm /home/data/YUV/BQSquare_416x240_60.yuv  &> BQSquare_416x240_60/cq_32/log/arquivo.log
+
+/home/simulacoes_av1/av1_pesquisa/aom/build_debug/aomenc --verbose --psnr --frame-parallel=0 --tile-columns=0 --passes=2 --cpu-used=0 --threads=1 --kf-min-dist=1000 --kf-max-dist=1000 --lag-in-frames=19 --limit=60 --end-usage=q --cq-level=20 --width=416 --height=240 -o BQSquare_416x240_60/cq_20/webm/coded.webm /home/data/YUV/BQSquare_416x240_60.yuv  &> BQSquare_416x240_60/cq_20/log/arquivo.log
+
+
+/home/simulacoes_av1/av1_pesquisa/aom/build_debug/aomenc --verbose --psnr --frame-parallel=0 --tile-columns=0 --passes=2 --cpu-used=0 --threads=1 --kf-min-dist=1000 --kf-max-dist=1000 --lag-in-frames=19 --limit=30 --end-usage=q --cq-level=55 --width=832 --height=480 -o RaceHorsesC_832x480_30/cq_55/webm/coded.webm /home/data/YUV/RaceHorsesC_832x480_30.yuv  &> RaceHorsesC_832x480_30/cq_55/log/arquivo.log
+
+/home/simulacoes_av1/av1_pesquisa/aom/build_debug/aomenc --verbose --psnr --frame-parallel=0 --tile-columns=0 --passes=2 --cpu-used=0 --threads=1 --kf-min-dist=1000 --kf-max-dist=1000 --lag-in-frames=19 --limit=30 --end-usage=q --cq-level=43 --width=832 --height=480 -o RaceHorsesC_832x480_30/cq_43/webm/coded.webm /home/data/YUV/RaceHorsesC_832x480_30.yuv  &> RaceHorsesC_832x480_30/cq_43/log/arquivo.log
+
+/home/simulacoes_av1/av1_pesquisa/aom/build_debug/aomenc --verbose --psnr --frame-parallel=0 --tile-columns=0 --passes=2 --cpu-used=0 --threads=1 --kf-min-dist=1000 --kf-max-dist=1000 --lag-in-frames=19 --limit=30 --end-usage=q --cq-level=32 --width=832 --height=480 -o RaceHorsesC_832x480_30/cq_32/webm/coded.webm /home/data/YUV/RaceHorsesC_832x480_30.yuv  &> RaceHorsesC_832x480_30/cq_32/log/arquivo.log
+
+/home/simulacoes_av1/av1_pesquisa/aom/build_debug/aomenc --verbose --psnr --frame-parallel=0 --tile-columns=0 --passes=2 --cpu-used=0 --threads=1 --kf-min-dist=1000 --kf-max-dist=1000 --lag-in-frames=19 --limit=30 --end-usage=q --cq-level=20 --width=832 --height=480 -o RaceHorsesC_832x480_30/cq_20/webm/coded.webm /home/data/YUV/RaceHorsesC_832x480_30.yuv  &> RaceHorsesC_832x480_30/cq_20/log/arquivo.log
+
+
+/home/simulacoes_av1/av1_pesquisa/aom/build_debug/aomenc --verbose --psnr --frame-parallel=0 --tile-columns=0 --passes=2 --cpu-used=0 --threads=1 --kf-min-dist=1000 --kf-max-dist=1000 --lag-in-frames=19 --limit=24 --end-usage=q --cq-level=55 --width=1920 --height=1080 -o Kimono_1920x1080_24/cq_55/webm/coded.webm /home/data/YUV/Kimono_1920x1080_24.yuv  &> Kimono_1920x1080_24/cq_55/log/arquivo.log
+
+/home/simulacoes_av1/av1_pesquisa/aom/build_debug/aomenc --verbose --psnr --frame-parallel=0 --tile-columns=0 --passes=2 --cpu-used=0 --threads=1 --kf-min-dist=1000 --kf-max-dist=1000 --lag-in-frames=19 --limit=24 --end-usage=q --cq-level=43 --width=1920 --height=1080 -o Kimono_1920x1080_24/cq_43/webm/coded.webm /home/data/YUV/Kimono_1920x1080_24.yuv  &> Kimono_1920x1080_24/cq_43/log/arquivo.log
+
+/home/simulacoes_av1/av1_pesquisa/aom/build_debug/aomenc --verbose --psnr --frame-parallel=0 --tile-columns=0 --passes=2 --cpu-used=0 --threads=1 --kf-min-dist=1000 --kf-max-dist=1000 --lag-in-frames=19 --limit=24 --end-usage=q --cq-level=32 --width=1920 --height=1080 -o Kimono_1920x1080_24/cq_32/webm/coded.webm /home/data/YUV/Kimono_1920x1080_24.yuv  &> Kimono_1920x1080_24/cq_32/log/arquivo.log
+
+/home/simulacoes_av1/av1_pesquisa/aom/build_debug/aomenc --verbose --psnr --frame-parallel=0 --tile-columns=0 --passes=2 --cpu-used=0 --threads=1 --kf-min-dist=1000 --kf-max-dist=1000 --lag-in-frames=19 --limit=24 --end-usage=q --cq-level=20 --width=1920 --height=1080 -o Kimono_1920x1080_24/cq_20/webm/coded.webm /home/data/YUV/Kimono_1920x1080_24.yuv  &> Kimono_1920x1080_24/cq_20/log/arquivo.log

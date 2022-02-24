@@ -1,0 +1,182 @@
+Codec: AOMedia Project AV1 Encoder v2.0.0
+Source file: /home/icaro/Videos/vvc/BlowingBubbles_416x240_50.yuv File Type: RAW Format: I420
+Destination file: /home/icaro/av1_pesquisa/output/bin/BlowingBubbles_416x240_50fps_8bit_32f.webm
+Coding path: LBD
+Encoder parameters:
+    g_usage                      = 0
+    g_threads                    = 1
+    g_profile                    = 0
+    g_w                          = 416
+    g_h                          = 240
+    g_bit_depth                  = 8
+    g_input_bit_depth            = 8
+    g_timebase.num               = 1
+    g_timebase.den               = 50
+    g_error_resilient            = 0
+    g_pass                       = 0
+    g_lag_in_frames              = 19
+    large_scale_tile             = 0
+    rc_dropframe_thresh          = 0
+    rc_resize_mode               = 0
+    rc_resize_denominator        = 8
+    rc_resize_kf_denominator     = 8
+    rc_superres_mode             = 0
+    rc_superres_denominator      = 8
+    rc_superres_kf_denominator   = 8
+    rc_superres_qthresh          = 63
+    rc_superres_kf_qthresh       = 32
+    rc_end_usage                 = 3
+    rc_target_bitrate            = 256
+    rc_min_quantizer             = 0
+    rc_max_quantizer             = 63
+    rc_undershoot_pct            = 25
+    rc_overshoot_pct             = 25
+    rc_buf_sz                    = 6000
+    rc_buf_initial_sz            = 4000
+    rc_buf_optimal_sz            = 5000
+    rc_2pass_vbr_bias_pct        = 50
+    rc_2pass_vbr_minsection_pct  = 0
+    rc_2pass_vbr_maxsection_pct  = 2000
+    fwd_kf_enabled               = 0
+    kf_mode                      = 1
+    kf_min_dist                  = 1000
+    kf_max_dist                  = 1000
+Pass 1/2 frame    1/0          0B       0 us 0.00 fpm [ETA  unknown] [K
+Pass 1/2 frame    2/0          0B   14374 us 139.14 fps [ETA  unknown] [K[K
+Pass 1/2 frame    2/3        648B    2592b/f  129600b/s  104153 us (19.20 fps)[K
+Pass 2/2 frame    1/0          0B  104157 us 9.60 fps [ETA  unknown] Partition times for pass 0:
+0x BLOCK_4X4 0
+0x BLOCK_4X8 0
+0x BLOCK_8X4 0
+0x BLOCK_8X8 0
+0x BLOCK_8X16 0
+0x BLOCK_16X8 0
+0x BLOCK_16X16 0
+0x BLOCK_16X32 0
+0x BLOCK_32X16 0
+0x BLOCK_32X32 0
+0x BLOCK_32X64 0
+0x BLOCK_64X32 0
+0x BLOCK_64X64 0
+0x BLOCK_64X128 0
+0x BLOCK_128X64 0
+0x BLOCK_128X128 0
+0x BLOCK_4X16 0
+0x BLOCK_16X4 0
+0x BLOCK_8X32 0
+0x BLOCK_32X8 0
+0x BLOCK_16X64 0
+0x BLOCK_64X16 0
+[K
+Pass 2/2 frame    2/0          0B  109442 us 18.27 fps [ETA  unknown] [K
+ Frame number: 1, Frame type: KEY_FRAME, Show Frame: 1, Q: 132
+                           av1_encode_strategy_time:         57115907 us [100.00%] (total:        57115907 us [100.00%])
+                    av1_get_second_pass_params_time:               29 us [  0.00%] (total:              29 us [  0.00%])
+                            denoise_and_encode_time:         57115870 us [100.00%] (total:        57115870 us [100.00%])
+                               apply_filtering_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                           av1_tpl_setup_stats_time:           545075 us [  0.95%] (total:          545075 us [  0.95%])
+                     encode_frame_to_data_rate_time:         56570786 us [ 99.05%] (total:        56570786 us [ 99.05%])
+                       encode_with_recode_loop_time:         54008261 us [ 94.56%] (total:        54008261 us [ 94.56%])
+                                   loop_filter_time:            72746 us [  0.13%] (total:           72746 us [  0.13%])
+                                          cdef_time:          1554712 us [  2.72%] (total:         1554712 us [  2.72%])
+                              loop_restoration_time:           929060 us [  1.63%] (total:          929060 us [  1.63%])
+                      av1_pack_bitstream_final_time:             5472 us [  0.01%] (total:            5472 us [  0.01%])
+                              av1_encode_frame_time:         50311885 us [ 88.09%] (total:        50311885 us [ 88.09%])
+                     av1_compute_global_motion_time:                2 us [  0.00%] (total:               2 us [  0.00%])
+                        av1_setup_motion_field_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                                 encode_sb_row_time:         54002810 us [ 94.55%] (total:        54002810 us [ 94.55%])
+                             rd_pick_partition_time:         50305001 us [ 88.08%] (total:        50305001 us [ 88.08%])
+                          av1_prune_partitions_time:             3115 us [  0.01%] (total:            3115 us [  0.01%])
+                         none_partition_search_time:         11174956 us [ 19.57%] (total:        11174956 us [ 19.57%])
+                        split_partition_search_time:         12442126 us [ 21.78%] (total:        12442126 us [ 21.78%])
+                  rectangular_partition_search_time:         21020215 us [ 36.80%] (total:        21020215 us [ 36.80%])
+                          ab_partitions_search_time:          5252573 us [  9.20%] (total:         5252573 us [  9.20%])
+                            rd_pick_4partition_time:         12372510 us [ 21.66%] (total:        12372510 us [ 21.66%])
+                                     encode_sb_time:           229445 us [  0.40%] (total:          229445 us [  0.40%])
+                              rd_pick_sb_modes_time:         52668539 us [ 92.21%] (total:        52668539 us [ 92.21%])
+                     av1_rd_pick_intra_mode_sb_time:         52635047 us [ 92.15%] (total:        52635047 us [ 92.15%])
+                     av1_rd_pick_inter_mode_sb_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                 set_params_rd_pick_inter_mode_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                               skip_inter_mode_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                             handle_inter_mode_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+    evaluate_motion_mode_for_winner_candidates_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                                  do_tx_search_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                             handle_intra_mode_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                         refine_winner_mode_tx_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                       av1_search_palette_mode_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                                  handle_newmv_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                              compound_type_rd_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                   interpolation_filter_search_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                                motion_mode_rd_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+35.785 34.844 37.865 39.632    9163F
+ Encoding a frame:[K
+ Frame number: 2, Frame type: INTER_FRAME, Show Frame: 1, Q: 220
+                           av1_encode_strategy_time:          9410944 us [100.00%] (total:        66526851 us [100.00%])
+                    av1_get_second_pass_params_time:                1 us [  0.00%] (total:              30 us [  0.00%])
+                            denoise_and_encode_time:          9410939 us [100.00%] (total:        66526809 us [100.00%])
+                               apply_filtering_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                           av1_tpl_setup_stats_time:                0 us [  0.00%] (total:          545075 us [  0.82%])
+                     encode_frame_to_data_rate_time:          9410938 us [100.00%] (total:        65981724 us [ 99.18%])
+                       encode_with_recode_loop_time:          8411633 us [ 89.38%] (total:        62419894 us [ 93.83%])
+                                   loop_filter_time:            33814 us [  0.36%] (total:          106560 us [  0.16%])
+                                          cdef_time:            16059 us [  0.17%] (total:         1570771 us [  2.36%])
+                              loop_restoration_time:           949178 us [ 10.09%] (total:         1878238 us [  2.82%])
+                      av1_pack_bitstream_final_time:              190 us [  0.00%] (total:            5662 us [  0.01%])
+                              av1_encode_frame_time:          8411343 us [ 89.38%] (total:        58723228 us [ 88.27%])
+                     av1_compute_global_motion_time:           397775 us [  4.23%] (total:          397777 us [  0.60%])
+                        av1_setup_motion_field_time:                8 us [  0.00%] (total:               8 us [  0.00%])
+                                 encode_sb_row_time:          8011567 us [ 85.13%] (total:        62014377 us [ 93.22%])
+                             rd_pick_partition_time:          8001441 us [ 85.02%] (total:        58306442 us [ 87.64%])
+                          av1_prune_partitions_time:           663680 us [  7.05%] (total:          666795 us [  1.00%])
+                         none_partition_search_time:          4175195 us [ 44.37%] (total:        15350151 us [ 23.07%])
+                        split_partition_search_time:          1035947 us [ 11.01%] (total:        13478073 us [ 20.26%])
+                  rectangular_partition_search_time:          1815287 us [ 19.29%] (total:        22835502 us [ 34.33%])
+                          ab_partitions_search_time:           577565 us [  6.14%] (total:         5830138 us [  8.76%])
+                            rd_pick_4partition_time:           607180 us [  6.45%] (total:        12979690 us [ 19.51%])
+                                     encode_sb_time:            42273 us [  0.45%] (total:          271718 us [  0.41%])
+                              rd_pick_sb_modes_time:          7065472 us [ 75.08%] (total:        59734011 us [ 89.79%])
+                     av1_rd_pick_intra_mode_sb_time:                0 us [  0.00%] (total:        52635047 us [ 79.12%])
+                     av1_rd_pick_inter_mode_sb_time:          7060977 us [ 75.03%] (total:         7060977 us [ 10.61%])
+                 set_params_rd_pick_inter_mode_time:            58239 us [  0.62%] (total:           58239 us [  0.09%])
+                               skip_inter_mode_time:            14951 us [  0.16%] (total:           14951 us [  0.02%])
+                             handle_inter_mode_time:          5373375 us [ 57.10%] (total:         5373375 us [  8.08%])
+    evaluate_motion_mode_for_winner_candidates_time:               68 us [  0.00%] (total:              68 us [  0.00%])
+                                  do_tx_search_time:               56 us [  0.00%] (total:              56 us [  0.00%])
+                             handle_intra_mode_time:          1577633 us [ 16.76%] (total:         1577633 us [  2.37%])
+                         refine_winner_mode_tx_time:              450 us [  0.00%] (total:             450 us [  0.00%])
+                       av1_search_palette_mode_time:                0 us [  0.00%] (total:               0 us [  0.00%])
+                                  handle_newmv_time:          1134855 us [ 12.06%] (total:         1134855 us [  1.71%])
+                              compound_type_rd_time:              174 us [  0.00%] (total:             174 us [  0.00%])
+                   interpolation_filter_search_time:           383309 us [  4.07%] (total:          383309 us [  0.58%])
+                                motion_mode_rd_time:          3820403 us [ 40.60%] (total:         3820403 us [  5.74%])
+33.422 32.217 36.912 39.055     151F
+ Encoding a frame:[K[K
+Pass 2/2 frame    2/2       9314B   37256b/f 1862800b/s   66533 ms (0.03 fps)[K
+Stream 0 PSNR (Overall/Avg/Y/U/V) 34.445 34.604 33.530 37.388 39.344 1862800 bps   66533 ms
+Partition times for pass 1:
+12710x BLOCK_4X4 1.28355
+1476x BLOCK_4X8 1.82857
+1484x BLOCK_8X4 1.89235
+3976x BLOCK_8X8 6.96495
+719x BLOCK_8X16 5.87352
+712x BLOCK_16X8 6.04528
+1266x BLOCK_16X16 23.2023
+168x BLOCK_16X32 4.08252
+184x BLOCK_32X16 4.49846
+412x BLOCK_32X32 18.2075
+41x BLOCK_32X64 2.0423
+28x BLOCK_64X32 1.71273
+112x BLOCK_64X64 5.99794
+4x BLOCK_64X128 0.370398
+0x BLOCK_128X64 0
+32x BLOCK_128X128 2.07797
+348x BLOCK_4X16 3.47979
+345x BLOCK_16X4 3.48636
+118x BLOCK_8X32 3.02853
+105x BLOCK_32X8 2.88676
+1x BLOCK_16X64 0.040435
+0x BLOCK_64X16 0
+Global time 66606091:
+
+
+/home/icaro/av1_pesquisa/aom/build_d/aomenc --verbose --psnr --frame-parallel=0 --tile-columns=0 --passes=2 --cpu-used=0 --threads=1 --kf-min-dist=1000 --kf-max-dist=1000 --end-usage=q --lag-in-frames=19 --width=416 --height=240 --cq-level=55 --bit-depth=8 --fps=50/1 -o /home/icaro/av1_pesquisa/output/bin/BlowingBubbles_416x240_50fps_8bit_32f.webm /home/icaro/Videos/vvc/BlowingBubbles_416x240_50.yuv &> /home/icaro/av1_pesquisa/aom/output_files/arquivo.log
